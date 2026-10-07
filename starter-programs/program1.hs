@@ -4,6 +4,13 @@
 -- Showcase 2 built-in methods (per data type, total = 8) showcasing data manipulations.
 -- (Example: sum, average, string, replace)
 
+-- Instructions to compile and run the code: 
+-- 1. Navigate to https://www.haskell.org/ghcup/ and install GHCup (if not already installed). 
+-- 2. Save the code in a file named "program1.hs".     
+-- 3. Open a terminal and navigate to the directory where the file is saved. 
+-- 4. Compile the code using the command: ghc program1.hs 
+-- 5. Run the compiled program using the command: ./program1
+
 functionInt :: Int -> Int
 functionInt x = product [x, x]  -- Using the built-in product function to multiply the integer by itself.
 
