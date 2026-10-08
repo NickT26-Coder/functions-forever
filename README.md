@@ -18,3 +18,4 @@ If you are in a Windows environment, you can run the file like so:
 ```
 .\program.exe
 ```
+Note: successful compilation will leave extra artifact files (`program.hi` and `program.o`) in the working directory.
