@@ -80,6 +80,25 @@ testTuples = do
     -- 2 x 1 and 1 x 2 Matrix Multiplication Example
     putStrLn $ "2x1 multiplied by 1x2 matrix creates a 2x2 matrix: " ++ show (matrixMultiplication (5, 4) (4, 5))
 
--- Guards
+-- GUARDS
+
+gravityGuard :: (RealFloat a) => a -> String
+gravityGuard val
+    | val < 0.000000000066743 = "Too Weak"
+    | val > 0.000000000066743 = "Too Strong"
+    | otherwise = "Perfect Gravitational Constant Value" -- Used as a fail safe like "default:" in Java
+
+gravityGuardClause :: (RealFloat a) => a -> String
+gravityGuardClause val
+    | val < gConstant = "Too Weak"
+    | val > gConstant = "Too Strong"
+    | otherwise = "Perfect Gravitational Constant Value" 
+    where gConstant = 0.000000000066743 -- The where clause allows us to create a variable for the function and guards to use
+
+testGuards :: IO()
+testGuards = do
+    -- A guard is similar to an if statement or switch statement that uses pipes to denote each part of the statement
+
+    putStrLn $ "Check Gravity Level: " ++ show (gravityGuard 1)
 
 -- Pattern Matching
