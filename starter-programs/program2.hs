@@ -8,6 +8,13 @@ Data Structures:
 Control Structures:
 - Guards
 - Pattern Matching
+
+INSTRUCTIONS:
+- Read comments to explain functionality
+- In the terminal run ":l program2" to compile the file if it isn't already
+- I have created 4 functions for the 2 data structures and 2 control structures
+- To run the test functions individually type the name of the function in the terminal by itself
+
 -}
 
 -- LISTS
