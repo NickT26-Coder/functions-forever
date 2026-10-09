@@ -104,8 +104,43 @@ gravityGuardClause val
 
 testGuards :: IO()
 testGuards = do
-    -- A guard is similar to an if statement or switch statement that uses pipes to denote each part of the statement
+    -- A guard is similar to an if statement that uses pipes to denote each part of the statement
 
     putStrLn $ "Check Gravity Level: " ++ show (gravityGuard 1)
 
 -- Pattern Matching
+
+footballScores :: Int -> String
+footballScores 1 = "Extra Point"
+footballScores 2 = "Safety or 2pt conversion"
+footballScores 3 = "Field Goal"
+footballScores 6 = "Touchdown"
+footballScores x = "Not a standalone score value" -- Catches all other forms of input, must be at the bottom
+
+-- Same function one built with patterns and one built with guards. The guards implementation is more readable.  
+compareInts :: (Ord a) => a -> a -> a
+compareInts a b = max a b
+
+compareIntsGuards :: (Ord a) => a -> a -> a
+compareIntsGuards a b
+    | a > b = a
+    | a < b = b
+    | otherwise = b
+
+-- Use pattern matching when there is an expected FORM to match, in this case lists
+check :: (Show a) => [a] -> String
+check [] = "This is an empty list"
+check (x:xs) = show (x:xs) ++ " is not an empty list"
+
+testPatterns :: IO()
+testPatterns = do
+
+    -- What makes pattern matching different from guards is that patterns are used to validate the form of a function input like a switch statement
+    -- You would use pattern matching to check if the input is a list and whether the list is empty or is it a tuple instead.
+    -- You would use guards when comparing values or you need to make a decision that results in a truthy value
+
+    putStrLn $ "Pattern match with 3 as the input: " ++ show (footballScores 3)
+
+    putStrLn $ "Pattern match with 5 as the input: " ++ show (footballScores 5)
+
+    putStrLn $ "Check if the list is empty or not: " ++ show (check [1,2])
