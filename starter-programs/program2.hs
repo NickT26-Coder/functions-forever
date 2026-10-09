@@ -1,4 +1,5 @@
 {-
+Created by: Nick Tingen
 Demonstrate the use of two data structures and two control structures.
 
 Data Structures:
