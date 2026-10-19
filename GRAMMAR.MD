@@ -15,7 +15,7 @@ argumentList -> expression “;”
 expression -> assignment
 assignment -> identifier = assignment | comparison
 comparison -> comparison comparisonOperator sum
-comparisonOperator -> “>” | “<” | “>->” | “<->” | “->->” | “!->”
+comparisonOperator -> “>” | “<” | “>=” | “<=” | “==” | “!=”
 sum -> sum (“+” | “-”) prod
 prod -> prod ( “*” | “/”) unary
 unary -> primary | ["-" | "!" ] unary “(“ [ argumentList ] “)”
