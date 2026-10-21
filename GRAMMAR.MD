@@ -1,5 +1,13 @@
 # Grammar
 
+### Metasyntax:
+- `nonterm -> result`: `nonterm` can be substituted for `result`
+- `{ nonterm }`: zero or more of `nonterm`
+- `[ nonterm ]`: zero or one of `nonterm`
+- `( nonterm )`: basic grouping, just `nonterm`
+- `nonterm1 | nonterm2`: one of either `nonterm1` or `nonterm2`
+- `"abc"`: exactly the characters `abc`
+
 ```
 program -> { statement | declaration }
 declaration -> variableDeclaration | functionDeclaration
@@ -20,7 +28,7 @@ sum -> sum (“+” | “-”) prod
 prod -> prod ( “*” | “/”) unary
 unary -> primary | ["-" | "!" ] unary “(“ [ argumentList ] “)”
 argumentList -> expression { “,”  expression }
-primitive -> integer | string | boolean | identifier | “(“ expression “)”
+primary -> integer | string | boolean | identifier | “(“ expression “)”
 integer -> digit { digit }
 string -> “\"” { stringCharacter } “\"”
 stringCharacter  -> any character except a double quote
