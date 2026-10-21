@@ -19,14 +19,16 @@ ifStatement -> “if” “(“ expression “)” statement [ “else” statem
 whileStatement -> “while” “(“ expression “)” statement
 returnStatement -> “return” expression “;"
 block -> “{“ { statement | declaration } “}”
-argumentList -> expression “;”
+expressionStatement -> expression “;”
+
 expression -> assignment
 assignment -> identifier = assignment | comparison
-comparison -> comparison comparisonOperator sum
+comparison -> comparison comparisonOperator sum | sum
 comparisonOperator -> “>” | “<” | “>=” | “<=” | “==” | “!=”
 sum -> sum (“+” | “-”) prod
-prod -> prod ( “*” | “/”) unary
-unary -> primary | ["-" | "!" ] unary “(“ [ argumentList ] “)”
+prod -> prod ( “*” | “/”) | unary
+unary -> ["-" | "!" ] unary | call
+call -> call “(“ [ argumentList ] “)” | primary
 argumentList -> expression { “,”  expression }
 primary -> integer | string | boolean | identifier | “(“ expression “)”
 integer -> digit { digit }
