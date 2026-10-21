@@ -3,7 +3,7 @@
 ```
 program -> { statement | declaration }
 declaration -> variableDeclaration | functionDeclaration
-variableDeclaration -> “let” identifier “->” expression “;”
+variableDeclaration -> “let” identifier “=” expression “;”
 functionDeclaration -> “def” identifier “(“ [ parameterList ] “)” block
 parameterList -> identifier { “,” identifier }
 statement -> ifStatement | whileStatement | returnStatement | block | expressionStatement;
