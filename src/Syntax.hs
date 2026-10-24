@@ -5,6 +5,7 @@ module Syntax (
   Expression (..),
   Statement (..),
   displayError,
+  replaceLineNumber,
   exprLineNumber,
   stmtLineNumber,
 ) where
@@ -13,6 +14,7 @@ data Error = Error Int String
   deriving (Eq, Show)
 
 displayError (Error lineNumber msg) = "Error on line " ++ show lineNumber ++ ": " ++ msg
+replaceLineNumber lineNumber (Error _ msg) = Error lineNumber msg
 
 -- All tokens must have line numbers for error locating
 data Token = Token {tLine :: Int, tType :: TokenValue}
@@ -73,6 +75,7 @@ data Expression
   deriving (Eq, Show)
 
 -- All statements that can err must have a token, see above
+-- Note whether each statement 'needs' the signifying token
 data Statement
   = SVariableDeclaration {sNewName :: Token, sValue :: Expression}
   | SFunctionDeclaration {sNewVariable :: Token, sParams :: [Token], sBody :: [Statement]}
