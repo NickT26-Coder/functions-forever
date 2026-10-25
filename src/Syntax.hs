@@ -57,6 +57,7 @@ data TokenValue
   | TCloseParen
   | TOpenBrace
   | TCloseBrace
+  | TEOF
   deriving (Eq, Show)
 
 -- Each expression that can fail must have a token for error locating
