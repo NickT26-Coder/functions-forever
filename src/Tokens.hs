@@ -5,19 +5,34 @@ module Tokens (
 import Data.Char
 import Syntax
 
-tokenize :: [Char] -> [Token]
+tokenize :: [Char] -> Either Error [Token]
 tokenize s = getToken 1 s
 
-getToken :: Int -> [Char] -> [Token]
-getToken _ "" = []
-getToken n ('=' : after) = (Token n TSingleEqual : getToken n after)
-getToken n all@(c : after) = undefined
+getToken :: Int -> [Char] -> Either Error [Token]
+getToken n "" = Right [Token n TEOF]
+getToken n ('=' : '=' : after) = getSimpleToken n after TDoubleEqual
+getToken n ('=' : after) = getSimpleToken n after TSingleEqual
+-- TODO:`` the rest of the exact-character tokens go here
+getToken n all@(c : _)
+  | isNumber c = do
+      let (numberToken, after) = getNumberToken n all
+      afterTokens <- getToken n after
+      Right $ numberToken : afterTokens
+  -- TODO: other dynamic token guards
+  | otherwise = Left $ Error n ("Unexpected character: '" ++ c : "'")
 
-getNumber :: Int -> [Char] -> [Token]
-getNumber = undefined
+getSimpleToken :: Int -> [Char] -> TokenValue -> Either Error [Token]
+getSimpleToken n s tokenValue = do
+  afterTokens <- getToken n s
+  Right $ Token n tokenValue : afterTokens
 
-getString :: Int -> [Char] -> [Token]
-getString = undefined
+getNumberToken :: Int -> [Char] -> (Token, [Char])
+getNumberToken n s = (Token n (TNumber (read numericChars)), after)
+ where
+  (numericChars, after) = span isNumber s
 
-getIdentifier :: Int -> [Char] -> [Token]
-getIdentifier = undefined
+getStringToken :: Int -> [Char] -> (Token, [Char])
+getStringToken = undefined
+
+getIdentifierToken :: Int -> [Char] -> (Token, [Char])
+getIdentifierToken = undefined
