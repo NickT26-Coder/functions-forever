@@ -8,18 +8,28 @@ The interpreter is currently in development. It will be able to: evaluate arithm
 
 This project uses the Glasgow Haskell Compiler. To install it, go to https://www.haskell.org/ghcup/ and install GHCup, following the instructions on the site (if not already installed). 
 
-To begin, open a terminal and navigate to the directory where the file is saved.
+### Running the starter programs
+
+Open a terminal and navigate to the directory where the file is saved (in this case, `starter-programs`).
 
 Compile the code using this command (replacing `program.hs` with the Haskell source file you would like to compile):
+```sh
+ghc Program.hs
 ```
-ghc program.hs
-```
-If it has run without error, run the compiled program by running (again, replacing `program` with the name of the file, without the `.hs` extension):
-```
-./program
+If it has run without error, run the compiled program by running (again, replacing `Program` with the name of the file, without the `.hs` extension):
+```sh
+./Program
 ```
 If you are in a Windows environment, you can run the file like so:
-```
-.\program.exe
+```sh
+.\Program.exe
 ```
 Note: successful compilation will leave extra artifact files (`program.hi` and `program.o`) in the working directory.
+
+### Running the Term Project
+
+The Term Project is compiled slightly differently. It still uses `ghc`, but with some extra flags. In the base directory (the same level as this README), run this command:
+```sh
+ghc -isrc -outputdir build -o main src/Main.hs
+```
+Again, if it has run without error, it will create an executable in the current directory called `main` (or `main.exe` on Windows).
