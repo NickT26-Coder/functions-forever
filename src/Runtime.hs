@@ -1,18 +1,43 @@
 module Runtime (
-  
+  Environment (..),
+  Value (..),
+  interpret,
 ) where
 
 import Data.Map
+import Parsing (parse)
 import Syntax
+import Tokens (tokenize)
 
-data Environment = Environment [Map String Value]
+data Environment = Environment {globals :: Map String Value, functionScopes :: [Map String Value]}
+
+newEnvironment = Environment Data.Map.empty []
+
+environmentGet :: Environment -> String -> Maybe Value
+environmentGet (Environment globals []) name = Data.Map.lookup name globals
+environmentGet (Environment _ (scope : _)) name = Data.Map.lookup name scope
+
+environmentPut :: Environment -> String -> Value -> Environment
+environmentPut (Environment globals []) name value = Environment (Data.Map.insert name value globals) []
+environmentPut (Environment globals (scope : outerScopes)) name value = Environment globals ((Data.Map.insert name value scope) : outerScopes)
 
 data Value = VNumber Integer | VString [Char] | VBoolean Bool | VFunction [Statement] | VNothing
+  deriving (Eq)
 
-interpret :: [Char] -> Value
-interpret = undefined
+display :: Value -> String
+display (VNumber n) = show n
+display (VString s) = show s
+display (VBoolean b) = show b
+display (VFunction _) = "<function>"
+display (VNothing) = "<no value>"
 
 type RuntimeFn a b = Environment -> a -> Either Error (Environment, b)
+
+interpret :: RuntimeFn [Char] (IO ())
+interpret env str = do
+  tokens <- tokenize str
+  stmts <- parse tokens
+  undefined
 
 execute :: RuntimeFn Statement ()
 execute env (SVariableDeclaration newName value) = executeVariableDeclaration env (newName, value)
@@ -75,7 +100,7 @@ evaluateCall :: RuntimeFn (Expression, Token, [Expression]) Value
 evaluateCall env (object, openParen, args) = undefined
 
 evaluateNumber :: RuntimeFn Token Value
-evaluateNumber env value = undefined
+evaluateNumber env (Token _ (TNumber n)) = Right (env, VNumber n)
 
 evaluateString :: RuntimeFn Token Value
 evaluateString env value = undefined
@@ -84,4 +109,4 @@ evaluateBoolean :: RuntimeFn Token Value
 evaluateBoolean env value = undefined
 
 evaluateVariable :: RuntimeFn Token Value
-evaluateVariable env value = undefined
+evaluateVariable env (Token n (TIdentifier variableName)) = undefined
