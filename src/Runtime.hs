@@ -1,7 +1,9 @@
 module Runtime (
   Environment (..),
   Value (..),
+  newEnvironment,
   interpret,
+  displayValue,
 ) where
 
 import Data.Map
@@ -24,12 +26,12 @@ environmentPut (Environment globals (scope : outerScopes)) name value = Environm
 data Value = VNumber Integer | VString [Char] | VBoolean Bool | VFunction [Statement] | VNothing
   deriving (Eq)
 
-display :: Value -> String
-display (VNumber n) = show n
-display (VString s) = show s
-display (VBoolean b) = show b
-display (VFunction _) = "<function>"
-display (VNothing) = "<no value>"
+displayValue :: Value -> String
+displayValue (VNumber n) = show n
+displayValue (VString s) = show s
+displayValue (VBoolean b) = show b
+displayValue (VFunction _) = "<function>"
+displayValue (VNothing) = "<no value>"
 
 type RuntimeFn a b = Environment -> a -> Either Error (Environment, b)
 
