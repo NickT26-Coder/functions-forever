@@ -35,11 +35,23 @@ displayValue (VNothing) = "<no value>"
 
 type RuntimeFn a b = Environment -> a -> Either Error (Environment, b)
 
-interpret :: RuntimeFn [Char] (IO ())
-interpret env str = do
-  tokens <- tokenize str
-  stmts <- parse tokens
-  undefined
+interpret :: Environment -> [Char] -> IO Environment
+-- TODO: replace expression evaluation with statement execution
+interpret env str = case runProgram env str of
+  (Right (envAfter, result)) -> do
+    putStrLn $ displayValue result
+    return envAfter
+  (Left (err)) -> do
+    putStrLn $ displayError err
+    return env
+ where
+  runProgram :: RuntimeFn [Char] Value
+  runProgram env str = do
+    tokens <- tokenize str
+    stmts <- parse tokens
+    case stmts of
+      (SExpressionStatement (expr) : _) -> evaluate env expr
+      _ -> undefined
 
 execute :: RuntimeFn Statement ()
 execute env (SVariableDeclaration newName value) = executeVariableDeclaration env (newName, value)
