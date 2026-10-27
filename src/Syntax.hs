@@ -40,6 +40,8 @@ data TokenValue
   | TFalse
   | {- Operators -}
     TSingleEqual
+  | TAnd
+  | TOr
   | TGreater
   | TLess
   | TGreaterEqual

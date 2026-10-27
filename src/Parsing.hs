@@ -60,7 +60,10 @@ parseAssignment :: ParseFn Expression
 parseAssignment (target@(Token _ (TIdentifier _)) : Token _ TSingleEqual : after) = do
   (value, afterValue) <- parseAssignment after -- assignment is right-associative
   Right (EAssignment target value, afterValue)
-parseAssignment ts = parseComparison ts
+parseAssignment ts = parseLogical ts
+
+parseLogical :: ParseFn Expression
+parseLogical = undefined
 
 parseComparison :: ParseFn Expression
 parseComparison =

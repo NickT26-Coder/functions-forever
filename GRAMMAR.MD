@@ -22,7 +22,8 @@ block -> “{“ { statement | declaration } “}”
 expressionStatement -> expression “;”
 
 expression -> assignment
-assignment -> identifier = assignment | comparison
+assignment -> identifier = assignment | logical
+logical -> logical ("&" | "|") comparison | comparison
 comparison -> comparison comparisonOperator sum | sum
 comparisonOperator -> “>” | “<” | “>=” | “<=” | “==” | “!=”
 sum -> sum (“+” | “-”) prod
