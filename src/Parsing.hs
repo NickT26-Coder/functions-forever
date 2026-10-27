@@ -8,13 +8,13 @@ parse :: [Token] -> Either Error [Statement]
 parse ts = do
   (program, _) <- loop ts
   Right program
-   where
-    loop :: ParseFn [Statement]
-    loop [Token _ TEOF] = Right ([], [])
-    loop ts@(_:_) = do
-      (statement, after) <- parseDeclarationOrStatement ts
-      (statementsAfter, _) <- loop after
-      Right (statement : statementsAfter, [])
+ where
+  loop :: ParseFn [Statement]
+  loop [Token _ TEOF] = Right ([], [])
+  loop ts@(_ : _) = do
+    (statement, after) <- parseDeclarationOrStatement ts
+    (statementsAfter, _) <- loop after
+    Right (statement : statementsAfter, [])
 
 type ParseFn a = [Token] -> Either Error (a, [Token])
 
@@ -63,10 +63,11 @@ parseAssignment (target@(Token _ (TIdentifier _)) : Token _ TSingleEqual : after
 parseAssignment ts = parseComparison ts
 
 parseComparison :: ParseFn Expression
-parseComparison = parseLeftAssociativeBinaryExpression
-  parseSum
-  [TGreater, TLess, TGreaterEqual, TLessEqual, TDoubleEqual, TNotEqual]
-  EComparison
+parseComparison =
+  parseLeftAssociativeBinaryExpression
+    parseSum
+    [TGreater, TLess, TGreaterEqual, TLessEqual, TDoubleEqual, TNotEqual]
+    EComparison
 
 parseSum :: ParseFn Expression
 parseSum = undefined
@@ -84,10 +85,11 @@ parseLeftAssociativeBinaryExpression operandFn possibleOperators constructor ts 
   loop leftOperand after
  where
   loop :: Expression -> ParseFn Expression
-  loop curLeftOperand (operatorToken@(Token _ operatorTokenValue):rightTokens)
-    | operatorTokenValue `elem` possibleOperators = do -- the next token is an operator we're looking for!
-      (rightOperand, afterRight) <- operandFn rightTokens
-      loop (constructor curLeftOperand operatorToken rightOperand) afterRight -- next iteration of the loop
+  loop curLeftOperand (operatorToken@(Token _ operatorTokenValue) : rightTokens)
+    -- the next token is an operator we're looking for!
+    | operatorTokenValue `elem` possibleOperators = do
+        (rightOperand, afterRight) <- operandFn rightTokens
+        loop (constructor curLeftOperand operatorToken rightOperand) afterRight -- next iteration of the loop
   loop curLeftOperand rightTokens = Right (curLeftOperand, rightTokens) -- the next token is not an operator; return the current left operand
 
 parseUnary :: ParseFn Expression
@@ -108,7 +110,8 @@ parsePrimary (Token n _ : _) = Left $ Error n "Expected an expression."
 -- Those tokens should be caught with pattern matching.
 expect :: TokenValue -> ParseFn Token
 expect expectedValue (token@(Token n value) : after) =
-  if expectedValue == value
-  then Right (token, after)
-  -- remove the T prefix from token
-  else Left $ Error n ("Expected a " ++ (drop 1 $ show expectedValue) ++ " token.")
+  if expectedValue == value then
+    Right (token, after)
+  else
+    -- remove the T prefix from token (drop 1)
+    Left $ Error n ("Expected a " ++ (drop 1 $ show expectedValue) ++ " token.")

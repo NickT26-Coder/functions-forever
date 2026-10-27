@@ -14,6 +14,7 @@ data Error = Error Int String
   deriving (Eq, Show)
 
 displayError (Error lineNumber msg) = "Error on line " ++ show lineNumber ++ ": " ++ msg
+
 replaceLineNumber lineNumber (Error _ msg) = Error lineNumber msg
 
 -- All tokens must have line numbers for error locating
