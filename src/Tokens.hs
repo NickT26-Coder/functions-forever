@@ -13,6 +13,7 @@ getToken n "" = Right [Token n TEOF]
 getToken n ('=' : '=' : after) = getSimpleToken n after TDoubleEqual
 getToken n ('=' : after) = getSimpleToken n after TSingleEqual
 -- TODO:`` the rest of the exact-character tokens go here
+-- Remember that whitespace should simply be skipped, and newlines should increment the line number
 getToken n all@(c : _)
   | isNumber c = do
       let (numberToken, after) = getNumberToken n all
@@ -34,5 +35,6 @@ getNumberToken n s = (Token n (TNumber (read numericChars)), after)
 getStringToken :: Int -> [Char] -> (Token, [Char])
 getStringToken = undefined
 
+-- TODO: If the identifier is equal to one of the keywords, use that instead
 getIdentifierToken :: Int -> [Char] -> (Token, [Char])
 getIdentifierToken = undefined
