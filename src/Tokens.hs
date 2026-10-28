@@ -18,11 +18,12 @@ getToken :: Int -> [Char] -> Either Error (Token, Int, [Char])
 getToken n "" = Right (Token n TEOF, n, "")
 getToken n ('=' : '=' : after) = Right (Token n TDoubleEqual, n, after)
 getToken n ('=' : after) = Right (Token n TSingleEqual, n, after)
--- TODO:`` the rest of the exact-character tokens go here
+getToken n (' ' : after) = getToken n after
+-- TODO: the rest of the exact-character tokens go here
 -- Remember that whitespace should simply be skipped, and newlines should increment the line number
 getToken n all@(c : _)
   | isNumber c = Right $ getNumberToken n all
-  -- TODO: other dynamic token guards
+  | isLetter c = Right $ getIdentifierToken n all
   | otherwise = Left $ Error n ("Unexpected character: '" ++ c : "'")
 
 getNumberToken :: Int -> [Char] -> (Token, Int, [Char])
