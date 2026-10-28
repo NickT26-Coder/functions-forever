@@ -67,6 +67,7 @@ data TokenValue
 -- This is usually the operator
 data Expression
   = EAssignment {eTarget :: Token, eValue :: Expression}
+  | ELogical {eLeft :: Expression, eOperator :: Token, eRight :: Expression}
   | EComparison {eLeft :: Expression, eOperator :: Token, eRight :: Expression}
   | ESum {eLeft :: Expression, eOperator :: Token, eRight :: Expression}
   | EProduct {eLeft :: Expression, eOperator :: Token, eRight :: Expression}

@@ -91,6 +91,7 @@ executeExpressionStatement env expression = undefined
 evaluate :: RuntimeFn Expression Value
 evaluate env (EAssignment target value) = evaluateAssignment env (target, value)
 evaluate env (EComparison left operator right) = evaluateComparison env (left, operator, right)
+evaluate env (ELogical left operator right) = evaluateLogical env (left, operator, right)
 evaluate env (ESum left operator right) = evaluateSum env (left, operator, right)
 evaluate env (EProduct left operator right) = evaluateProduct env (left, operator, right)
 evaluate env (EUnary operator object) = evaluateUnary env (operator, object)
@@ -103,6 +104,9 @@ evaluate env (EVariable value) = evaluateVariable env value
 evaluateAssignment :: RuntimeFn (Token, Expression) Value
 evaluateAssignment env (target, value) = undefined
 
+evaluateLogical :: RuntimeFn (Expression, Token, Expression) Value
+evaluateLogical env (left, operator, right) = undefined
+  
 evaluateComparison :: RuntimeFn (Expression, Token, Expression) Value
 evaluateComparison env (left, operator, right) = undefined
 
