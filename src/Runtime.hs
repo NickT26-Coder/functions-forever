@@ -63,7 +63,9 @@ execute env (SBlockStatement openBrace body) = executeBlockStatement env (openBr
 execute env (SExpressionStatement expression) = executeExpressionStatement env expression
 
 executeVariableDeclaration :: RuntimeFn (Token, Expression) ()
-executeVariableDeclaration env (newName, value) = undefined
+executeVariableDeclaration env (Token _ (TIdentifier name), value) = do
+  (env, value) <- evaluate env value
+  Right (environmentPut env name value, ())
 
 executeFunctionDeclaration :: RuntimeFn (Token, [Token], [Statement]) ()
 executeFunctionDeclaration env (newVariable, params, body) = undefined
@@ -102,7 +104,9 @@ evaluate env (EBoolean value) = evaluateBoolean env value
 evaluate env (EVariable value) = evaluateVariable env value
 
 evaluateAssignment :: RuntimeFn (Token, Expression) Value
-evaluateAssignment env (target, value) = undefined
+evaluateAssignment env (Token _ (TIdentifier target), value) = do
+  (env, value) <- evaluate env value
+  Right (environmentPut env target value, value)
 
 evaluateLogical :: RuntimeFn (Expression, Token, Expression) Value
 evaluateLogical env (left, operator, right) = undefined
@@ -117,7 +121,12 @@ evaluateProduct :: RuntimeFn (Expression, Token, Expression) Value
 evaluateProduct env (left, operator, right) = undefined
 
 evaluateUnary :: RuntimeFn (Token, Expression) Value
-evaluateUnary env (operator, object) = undefined
+evaluateUnary env (Token n operator, object) = do
+  (env, objectValue) <- evaluate env object
+  case (operator, objectValue) of
+    (TMinus, VNumber num) -> Right (env, VNumber $ -num)
+    (TNot, VBoolean bool) -> Right (env, VBoolean $ not bool)
+    _ -> Left $ Error n ("Operation '" ++ show operator ++ "' not supported on value of " ++ displayValue objectValue)
 
 evaluateCall :: RuntimeFn (Expression, Token, [Expression]) Value
 evaluateCall env (object, openParen, args) = undefined
@@ -132,4 +141,6 @@ evaluateBoolean :: RuntimeFn Token Value
 evaluateBoolean env value = undefined
 
 evaluateVariable :: RuntimeFn Token Value
-evaluateVariable env (Token n (TIdentifier variableName)) = undefined
+evaluateVariable env (Token n (TIdentifier variableName)) = case environmentGet env variableName of
+  Just value -> Right (env, value)
+  Nothing -> Left $ Error n ("Undefined variable '" ++ variableName ++ "'")
