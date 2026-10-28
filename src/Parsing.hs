@@ -25,7 +25,10 @@ parseDeclarationOrStatement (Token _ TDef : after) = parseFunctionDeclaration af
 parseDeclarationOrStatement ts = parseStatement ts
 
 parseVariableDeclaration :: ParseFn Statement
-parseVariableDeclaration = undefined
+parseVariableDeclaration (name@(Token _ (TIdentifier _)) : (Token _ TSingleEqual) : after) = do
+  (value, after) <- parseExpression after
+  Right (SVariableDeclaration name value, after)
+parseVariableDeclaration (Token n _ : _) = Left $ Error n "Invalid variable declaration."
 
 parseFunctionDeclaration :: ParseFn Statement
 parseFunctionDeclaration = undefined
