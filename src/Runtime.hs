@@ -6,22 +6,22 @@ module Runtime (
   displayValue,
 ) where
 
-import Data.Map
+import qualified Data.Map as Map
 import Parsing (parse)
 import Syntax
 import Tokens (tokenize)
 
-data Environment = Environment {globals :: Map String Value, functionScopes :: [Map String Value]}
+data Environment = Environment {globals :: Map.Map String Value, functionScopes :: [Map.Map String Value]}
 
-newEnvironment = Environment Data.Map.empty []
+newEnvironment = Environment Map.empty []
 
 environmentGet :: Environment -> String -> Maybe Value
-environmentGet (Environment globals []) name = Data.Map.lookup name globals
-environmentGet (Environment _ (scope : _)) name = Data.Map.lookup name scope
+environmentGet (Environment globals []) name = Map.lookup name globals
+environmentGet (Environment _ (scope : _)) name = Map.lookup name scope
 
 environmentPut :: Environment -> String -> Value -> Environment
-environmentPut (Environment globals []) name value = Environment (Data.Map.insert name value globals) []
-environmentPut (Environment globals (scope : outerScopes)) name value = Environment globals ((Data.Map.insert name value scope) : outerScopes)
+environmentPut (Environment globals []) name value = Environment (Map.insert name value globals) []
+environmentPut (Environment globals (scope : outerScopes)) name value = Environment globals ((Map.insert name value scope) : outerScopes)
 
 data Value = VNumber Integer | VString [Char] | VBoolean Bool | VFunction [Statement] | VNothing
   deriving (Eq)
@@ -69,8 +69,13 @@ executeFunctionDeclaration :: RuntimeFn (Token, [Token], [Statement]) ()
 executeFunctionDeclaration env (newVariable, params, body) = undefined
 
 executeIfStatement :: RuntimeFn (Token, Expression, Statement, Maybe Statement) ()
-executeIfStatement env (keyword, condition, trueBranch, falseBranch) = undefined
-
+executeIfStatement env (keyword, condition, trueBranch, falseBranch) = do
+  (env, result) <- evaluate env condition
+  if result == VBoolean True then
+    execute env trueBranch
+  else case falseBranch of
+    Nothing -> return (env, ())
+    
 executeWhileStatement :: RuntimeFn (Token, Expression, Statement) ()
 executeWhileStatement env (keyword, condition, loopBody) = undefined
 
