@@ -17,4 +17,4 @@ loop env = do
     putStrLn "Exiting interpreter."
   else do
     newEnv <- interpret env input
-    loop env
+    loop newEnv
