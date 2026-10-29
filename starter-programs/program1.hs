@@ -1,3 +1,5 @@
+-- Completed by: Luke Ziegelmann, Jeremiah Griffin
+
 -- Implement a program that utilizes at least 4 types.
 -- (Example: int, float, string, boolean)
 
