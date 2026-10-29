@@ -60,7 +60,6 @@ parseStatement all@(Token _ TIf : after) = parseIfStatement all
 parseStatement all@(Token _ TReturn : _) = parseReturnStatement all
 parseStatement all@(Token _ TWhile : _) = parseWhileStatement all
 parseStatement all@(Token _ TOpenBrace : _) = parseBlock all
--- TODO: Other cases go here
 parseStatement ts = parseExpressionStatement ts
 
 parseIfStatement :: ParseFn Statement
@@ -191,7 +190,6 @@ parseArguments ts = do
     _ -> Right ([arg], afterArg)
 
 parsePrimary :: ParseFn Expression
--- TODO: Other primary-level expressions go here
 parsePrimary (token@(Token _ (TNumber _ )) : after) =
   Right (ENumber token, after)
 parsePrimary (token@(Token _ (TString _ )) : after) =
