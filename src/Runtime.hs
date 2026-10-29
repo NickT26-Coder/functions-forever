@@ -77,7 +77,7 @@ executeIfStatement env (keyword, condition, trueBranch, falseBranch) = do
     execute env trueBranch
   else case falseBranch of
     Nothing -> return (env, ())
-    
+
 executeWhileStatement :: RuntimeFn (Token, Expression, Statement) ()
 executeWhileStatement env (keyword, condition, loopBody) = undefined
 
@@ -110,7 +110,7 @@ evaluateAssignment env (Token _ (TIdentifier target), value) = do
 
 evaluateLogical :: RuntimeFn (Expression, Token, Expression) Value
 evaluateLogical env (left, operator, right) = undefined
-  
+
 evaluateComparison :: RuntimeFn (Expression, Token, Expression) Value
 evaluateComparison env (left, operator, right) = undefined
 

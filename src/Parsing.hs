@@ -32,27 +32,27 @@ parseVariableDeclaration (name@(Token _ (TIdentifier _)) : (Token _ TSingleEqual
 parseVariableDeclaration (Token n _ : _) = Left $ Error n "Invalid variable declaration."
 
 parseFunctionDeclaration :: ParseFn Statement
-parseFunctionDeclaration(name@(Token _ (TIdentifier _)) : afterName) = do
-  (_, afterOpenParen) <- expect TOpenParen afterName 
+parseFunctionDeclaration (name@(Token _ (TIdentifier _)) : afterName) = do
+  (_, afterOpenParen) <- expect TOpenParen afterName
   (params, afterParams) <- parseParameters afterOpenParen
   (_, afterCloseParen) <- expect TCloseParen afterParams
-  (body, afterBody) <- parseBlock afterCloseParen 
+  (body, afterBody) <- parseBlock afterCloseParen
   Right (SFunctionDeclaration name params (sBodyFromBlock body), afterBody)
-  where
-    sBodyFromBlock (SBlockStatement _ statements) = statements
-    sBodyFromBlock _ = []
-parseFunctionDeclaration (Token n _ : _ ) = 
+ where
+  sBodyFromBlock (SBlockStatement _ statements) = statements
+  sBodyFromBlock _ = []
+parseFunctionDeclaration (Token n _ : _) =
   Left $ Error n "Expects function name"
 
 parseParameters :: ParseFn [Token]
-parseParameters tokens@(Token _ TCloseParen : _ ) = Right ([], tokens)
-parseParameters (name@(Token _ (TIdentifier _)) : afterName) = 
-  case afterName of 
-    Token _ TComma : afterComma -> do 
+parseParameters tokens@(Token _ TCloseParen : _) = Right ([], tokens)
+parseParameters (name@(Token _ (TIdentifier _)) : afterName) =
+  case afterName of
+    Token _ TComma : afterComma -> do
       (params, remaining) <- parseParameters afterComma
       Right (name : params, remaining)
-    _->Right ([name], afterName)
-parseParameters (Token n _ : _ ) =
+    _ -> Right ([name], afterName)
+parseParameters (Token n _ : _) =
   Left $ Error n "Expects parameter name"
 
 parseStatement :: ParseFn Statement
@@ -68,14 +68,14 @@ parseIfStatement (keyword@(Token _ TIf) : afterIf) = do
   (condition, afterCondition) <- parseExpression afterOpenParen
   (_, afterCloseParen) <- expect TCloseParen afterCondition
   (trueBranch, afterTrueBranch) <- parseBlock afterCloseParen
-  case afterTrueBranch of 
+  case afterTrueBranch of
     Token _ TElse : afterElse -> do
       (falseBranch, afterFalseBranch) <- parseBlock afterElse
       Right (SIfStatement keyword condition trueBranch (Just falseBranch), afterFalseBranch)
     _ -> Right (SIfStatement keyword condition trueBranch Nothing, afterTrueBranch)
 
 parseWhileStatement :: ParseFn Statement
-parseWhileStatement(keyword@(Token _ TWhile) : afterWhile) = do
+parseWhileStatement (keyword@(Token _ TWhile) : afterWhile) = do
   (_, afterOpenParen) <- expect TOpenParen afterWhile
   (condition, afterCondition) <- parseExpression afterOpenParen
   (_, afterCloseParen) <- expect TCloseParen afterCondition
@@ -83,24 +83,24 @@ parseWhileStatement(keyword@(Token _ TWhile) : afterWhile) = do
   Right (SWhileStatement keyword condition body, afterBody)
 
 parseReturnStatement :: ParseFn Statement
-parseReturnStatement(keyword@(Token _ TReturn) : afterReturn) = do
+parseReturnStatement (keyword@(Token _ TReturn) : afterReturn) = do
   (value, afterValue) <- parseExpression afterReturn
-  (_, afterStatement) <- expect TSemicolon afterValue 
+  (_, afterStatement) <- expect TSemicolon afterValue
   Right (SReturnStatement keyword value, afterStatement)
 
 parseBlock :: ParseFn Statement
-parseBlock(openBrace@(Token _ TOpenBrace): afterOpenBrace) = do
-  (body, afterBody) <- loop afterOpenBrace 
+parseBlock (openBrace@(Token _ TOpenBrace) : afterOpenBrace) = do
+  (body, afterBody) <- loop afterOpenBrace
   (_, afterCloseBrace) <- expect TCloseBrace afterBody
   Right (SBlockStatement openBrace body, afterCloseBrace)
-  where
-    loop :: ParseFn [Statement]
-    loop tokens@(Token _ TCloseBrace : _ ) = Right ([], tokens)
-    loop [Token n TEOF] = Left $ Error n "Expects close bracket"
-    loop tokens = do
-      (statement,afterStatement) <- parseDeclarationOrStatement tokens
-      (statementsAfter, remaining) <- loop afterStatement
-      Right (statement : statementsAfter, remaining)
+ where
+  loop :: ParseFn [Statement]
+  loop tokens@(Token _ TCloseBrace : _) = Right ([], tokens)
+  loop [Token n TEOF] = Left $ Error n "Expects close bracket"
+  loop tokens = do
+    (statement, afterStatement) <- parseDeclarationOrStatement tokens
+    (statementsAfter, remaining) <- loop afterStatement
+    Right (statement : statementsAfter, remaining)
 
 parseExpressionStatement :: ParseFn Statement
 parseExpressionStatement ts = do
@@ -118,10 +118,11 @@ parseAssignment (target@(Token _ (TIdentifier _)) : Token _ TSingleEqual : after
 parseAssignment ts = parseLogical ts
 
 parseLogical :: ParseFn Expression
-parseLogical = parseLeftAssociativeBinaryExpression
-  parseComparison
-  [TAnd, TOr]
-  ELogical
+parseLogical =
+  parseLeftAssociativeBinaryExpression
+    parseComparison
+    [TAnd, TOr]
+    ELogical
 
 parseComparison :: ParseFn Expression
 parseComparison =
@@ -131,14 +132,14 @@ parseComparison =
     EComparison
 
 parseSum :: ParseFn Expression
-parseSum = 
+parseSum =
   parseLeftAssociativeBinaryExpression
-    parseProd 
+    parseProd
     [TPlus, TMinus]
     ESum
 
 parseProd :: ParseFn Expression
-parseProd = 
+parseProd =
   parseLeftAssociativeBinaryExpression
     parseUnary
     [TTimes, TDivide]
@@ -162,7 +163,7 @@ parseLeftAssociativeBinaryExpression operandFn possibleOperators constructor ts 
   loop curLeftOperand rightTokens = Right (curLeftOperand, rightTokens) -- the next token is not an operator; return the current left operand
 
 parseUnary :: ParseFn Expression
-parseUnary(operator@(Token _ operatorValue) : afterOperator) | operatorValue == TMinus || operatorValue == TNot = do
+parseUnary (operator@(Token _ operatorValue) : afterOperator) | operatorValue == TMinus || operatorValue == TNot = do
   (object, afterObject) <- parseUnary afterOperator
   Right (EUnary operator object, afterObject)
 parseUnary ts = parseCall ts
@@ -170,36 +171,36 @@ parseUnary ts = parseCall ts
 parseCall :: ParseFn Expression
 parseCall ts = do
   (expr, afterExpr) <- parsePrimary ts
-  loop expr afterExpr 
-  where 
-    loop :: Expression -> ParseFn Expression 
-    loop expr (openParen@(Token _ TOpenParen) : afterOpenParen) = do
-      (args, afterArgs) <- parseArguments afterOpenParen 
-      (_, afterCloseParen) <- expect TCloseParen afterArgs
-      loop (ECall expr openParen args) afterCloseParen
-    loop expr remaining = Right (expr, remaining)
+  loop expr afterExpr
+ where
+  loop :: Expression -> ParseFn Expression
+  loop expr (openParen@(Token _ TOpenParen) : afterOpenParen) = do
+    (args, afterArgs) <- parseArguments afterOpenParen
+    (_, afterCloseParen) <- expect TCloseParen afterArgs
+    loop (ECall expr openParen args) afterCloseParen
+  loop expr remaining = Right (expr, remaining)
 
 parseArguments :: ParseFn [Expression]
 parseArguments tokens@(Token _ TCloseParen : _) = Right ([], tokens)
-parseArguments ts = do 
-  (arg, afterArg) <- parseExpression ts 
-  case afterArg of 
-    Token _ TComma : afterComma -> do 
-      (args, afterArgs) <- parseArguments afterComma 
+parseArguments ts = do
+  (arg, afterArg) <- parseExpression ts
+  case afterArg of
+    Token _ TComma : afterComma -> do
+      (args, afterArgs) <- parseArguments afterComma
       Right (arg : args, afterArgs)
     _ -> Right ([arg], afterArg)
 
 parsePrimary :: ParseFn Expression
-parsePrimary (token@(Token _ (TNumber _ )) : after) =
+parsePrimary (token@(Token _ (TNumber _)) : after) =
   Right (ENumber token, after)
-parsePrimary (token@(Token _ (TString _ )) : after) =
+parsePrimary (token@(Token _ (TString _)) : after) =
   Right (EString token, after)
 parsePrimary (token@(Token _ TTrue) : after) =
   Right (EBoolean token, after)
 parsePrimary (token@(Token _ TFalse) : after) =
   Right (EBoolean token, after)
-parsePrimary (token@(Token _ (TIdentifier _ )) : after) =
-    Right (EVariable token, after)
+parsePrimary (token@(Token _ (TIdentifier _)) : after) =
+  Right (EVariable token, after)
 parsePrimary (Token _ TOpenParen : after) = do
   (grouped, afterGroup) <- parseExpression after
   (_, afterParen) <- expect TCloseParen afterGroup

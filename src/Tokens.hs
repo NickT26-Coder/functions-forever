@@ -37,17 +37,17 @@ getStringToken = undefined
 
 -- TODO: If the identifier is equal to one of the keywords, use that instead
 getIdentifierToken :: Int -> [Char] -> (Token, Int, [Char])
-getIdentifierToken n s = (Token n input), n, after
-where 
+getIdentifierToken n s = (Token n input) n after
+ where
   isIdentifer c = isAlphaNum c || c == '_'
   (identifier, after) = span isIdentifer s
-  input = case identifier of "let" -> TLet
-                            "def" -> TDef
-                            "if" -> TIf
-                            "else" -> TElse
-                            "while" -> TWhile
-                            "return" -> TReturn
-                            "true" -> TTrue
-                            "false" -> TFalse
-                            _ -> TIdentifier
-  
+  input = case identifier of
+    "let" -> TLet
+    "def" -> TDef
+    "if" -> TIf
+    "else" -> TElse
+    "while" -> TWhile
+    "return" -> TReturn
+    "true" -> TTrue
+    "false" -> TFalse
+    _ -> TIdentifier
