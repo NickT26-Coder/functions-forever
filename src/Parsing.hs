@@ -26,8 +26,9 @@ parseDeclarationOrStatement ts = parseStatement ts
 
 parseVariableDeclaration :: ParseFn Statement
 parseVariableDeclaration (name@(Token _ (TIdentifier _)) : (Token _ TSingleEqual) : after) = do
-  (value, after) <- parseExpression after
-  Right (SVariableDeclaration name value, after)
+  (value, afterValue) <- parseExpression after
+  (_, afterStatement) <- expect TSemicolon afterValue
+  Right (SVariableDeclaration name value, afterStatement)
 parseVariableDeclaration (Token n _ : _) = Left $ Error n "Invalid variable declaration."
 
 parseFunctionDeclaration :: ParseFn Statement
@@ -56,6 +57,9 @@ parseParameters (Token n _ : _ ) =
 
 parseStatement :: ParseFn Statement
 parseStatement all@(Token _ TIf : after) = parseIfStatement all
+parseStatement all@(Token _ TReturn : _) = parseReturnStatement all
+parseStatement all@(Token _ TWhile : _) = parseWhileStatement all
+parseStatement all@(Token _ TOpenBrace : _) = parseBlock all
 -- TODO: Other cases go here
 parseStatement ts = parseExpressionStatement ts
 
@@ -188,6 +192,16 @@ parseArguments ts = do
 
 parsePrimary :: ParseFn Expression
 -- TODO: Other primary-level expressions go here
+parsePrimary (token@(Token _ (TNumber _ )) : after) =
+  Right (ENumber token, after)
+parsePrimary (token@(Token _ (TString _ )) : after) =
+  Right (EString token, after)
+parsePrimary (token@(Token _ TTrue) : after) =
+  Right (EBoolean token, after)
+parsePrimary (token@(Token _ TFalse) : after) =
+  Right (EBoolean token, after)
+parsePrimary (token@(Token _ (TIdentifier _ )) : after) =
+    Right (EVariable token, after)
 parsePrimary (Token _ TOpenParen : after) = do
   (grouped, afterGroup) <- parseExpression after
   (_, afterParen) <- expect TCloseParen afterGroup
