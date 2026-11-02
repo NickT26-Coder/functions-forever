@@ -37,7 +37,7 @@ getStringToken = undefined
 
 -- TODO: If the identifier is equal to one of the keywords, use that instead
 getIdentifierToken :: Int -> [Char] -> (Token, Int, [Char])
-getIdentifierToken n s = (Token n input) n after
+getIdentifierToken n s = (Token n input, n, after)
  where
   isIdentifer c = isAlphaNum c || c == '_'
   (identifier, after) = span isIdentifer s
@@ -50,4 +50,4 @@ getIdentifierToken n s = (Token n input) n after
     "return" -> TReturn
     "true" -> TTrue
     "false" -> TFalse
-    _ -> TIdentifier
+    _ -> TIdentifier identifier
