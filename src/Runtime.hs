@@ -116,7 +116,7 @@ executeIfStatement env (keyword, condition, trueBranch, falseBranch) = do
   if result == VBoolean True then
     execute env trueBranch
   else case falseBranch of
-    Nothing -> return (env, ())
+    Nothing -> Right (env, ())
 
 executeWhileStatement :: RuntimeFn (Token, Expression, Statement) ()
 executeWhileStatement env (keyword, condition, loopBody) = undefined
