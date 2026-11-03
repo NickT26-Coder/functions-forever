@@ -13,12 +13,13 @@ import Tokens (tokenize)
 
 data Environment = Environment
   { globals :: Map.Map String Value,
-    scopes :: [Map.Map String Value]
+    scopes :: [Map.Map String Value],
+    totalPrinted :: [String]
   }
   deriving (Eq)
 
 environmentGet :: Environment -> String -> Maybe Value
-environmentGet (Environment globals scopes) name = case searchScopes scopes of
+environmentGet (Environment globals scopes _) name = case searchScopes scopes of
   Nothing -> Map.lookup name globals
   foundInScopes -> foundInScopes
  where
@@ -29,9 +30,10 @@ environmentGet (Environment globals scopes) name = case searchScopes scopes of
     found -> found
 
 environmentPut :: Environment -> String -> Value -> Environment
-environmentPut (Environment globals []) name value = Environment (Map.insert name value globals) []
-environmentPut (Environment globals (scope : outerScopes)) name value =
-  Environment globals ((Map.insert name value scope) : outerScopes)
+environmentPut (Environment globals [] printed) name value =
+  Environment (Map.insert name value globals) [] printed
+environmentPut (Environment globals (scope : outerScopes) printed) name value =
+  Environment globals ((Map.insert name value scope) : outerScopes) printed
 
 type RuntimeFn a b = Environment -> a -> Either Error (Environment, b)
 
@@ -60,7 +62,18 @@ displayValue (VFunction _ _) = "<function>"
 displayValue (VBuiltinFunction _) = "<built-in function>"
 displayValue (VNothing) = "<no value>"
 
-type RuntimeFn a b = Environment -> a -> Either Error (Environment, b)
+standardLibrary :: Map.Map String Value
+standardLibrary =
+  Map.fromList
+    [ ("print", VBuiltinFunction printImplementation)
+    ]
+
+newEnvironment :: Environment
+newEnvironment = Environment standardLibrary [] []
+
+printImplementation :: RuntimeFn [Value] Value
+-- just concatenate it to the list of outputs
+printImplementation (Environment g s outputs) (arg : _) = Right $ (Environment g s (displayValue arg : outputs), VNothing)
 
 interpret :: Environment -> [Char] -> IO Environment
 -- TODO: replace expression evaluation with statement execution
