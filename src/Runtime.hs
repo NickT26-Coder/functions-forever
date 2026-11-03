@@ -110,7 +110,13 @@ executeVariableDeclaration env (Token _ (TIdentifier name), value) = do
   Right (environmentPut envAfterValue name evaluated, Continue)
 
 executeFunctionDeclaration :: RuntimeFn (Token, [Token], [Statement]) ExecutionFlow
-executeFunctionDeclaration env (newVariable, params, body) = undefined
+executeFunctionDeclaration env ((Token _ (TIdentifier name), paramTokens, body)) = do
+  paramStrings <- mapM getStringOfIdent paramTokens 
+  Right (environmentPut env name (VFunction paramStrings body), Continue)
+   where
+    getStringOfIdent :: Token -> Either Error String
+    getStringOfIdent (Token _ (TIdentifier str)) = Right str
+    getStringOfIdent (Token n _) = Left $ Error n "Expected identifier token"
 
 executeIfStatement :: RuntimeFn (Token, Expression, Statement, Maybe Statement) ExecutionFlow
 executeIfStatement env (keyword, condition, trueBranch, falseBranch) = do
@@ -125,7 +131,9 @@ executeWhileStatement :: RuntimeFn (Token, Expression, Statement) ExecutionFlow
 executeWhileStatement env (keyword, condition, loopBody) = undefined
 
 executeReturnStatement :: RuntimeFn (Token, Expression) ExecutionFlow
-executeReturnStatement env (keyword, value) = undefined
+executeReturnStatement env (keyword, value) = do
+  (envAfter, evaluated) <- evaluate env value
+  Right (envAfter, Returned evaluated)
 
 executeBlockStatement :: RuntimeFn (Token, [Statement]) ExecutionFlow
 executeBlockStatement (Environment globals scopes printed) (openBrace, body) = do
