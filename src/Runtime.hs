@@ -182,7 +182,7 @@ evaluateUnary env (Token n operator, object) = do
   case (operator, objectValue) of
     (TMinus, VNumber num) -> Right (envAfterObject, VNumber $ -num)
     (TNot, VBoolean bool) -> Right (envAfterObject, VBoolean $ not bool)
-    _ -> Left $ Error n ("Operation '" ++ show operator ++ "' not supported on value of " ++ displayValue objectValue)
+    _ -> Left $ Error n ("Operation '" ++ getTokenName operator ++ "' not supported on value of " ++ displayValue objectValue)
 
 evaluateCall :: RuntimeFn (Expression, Token, [Expression]) Value
 evaluateCall env (object, openParen, args) = undefined
