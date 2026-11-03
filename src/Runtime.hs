@@ -23,14 +23,31 @@ environmentPut :: Environment -> String -> Value -> Environment
 environmentPut (Environment globals []) name value = Environment (Map.insert name value globals) []
 environmentPut (Environment globals (scope : outerScopes)) name value = Environment globals ((Map.insert name value scope) : outerScopes)
 
-data Value = VNumber Integer | VString [Char] | VBoolean Bool | VFunction [Statement] | VNothing
-  deriving (Eq)
+type RuntimeFn a b = Environment -> a -> Either Error (Environment, b)
+
+data Value
+  = VNumber Integer
+  | VString String
+  | VBoolean Bool
+  | VFunction [String] [Statement]
+  | VBuiltinFunction (RuntimeFn [Value] Value)
+  | VNothing
+
+instance Eq Value where
+  VNumber a == VNumber b = (a == b)
+  VString a == VString b = (a == b)
+  VBoolean a == VBoolean b = (a == b)
+  VFunction a1 a2 == VFunction b1 b2 = (a1 == b1 && a2 == b2)
+  VBuiltinFunction _ == VBuiltinFunction _ = False
+  VNothing == VNothing = True
 
 displayValue :: Value -> String
 displayValue (VNumber n) = show n
-displayValue (VString s) = show s
-displayValue (VBoolean b) = show b
-displayValue (VFunction _) = "<function>"
+displayValue (VString s) = s
+displayValue (VBoolean True) = "true"
+displayValue (VBoolean False) = "false"
+displayValue (VFunction _ _) = "<function>"
+displayValue (VBuiltinFunction _) = "<built-in function>"
 displayValue (VNothing) = "<no value>"
 
 type RuntimeFn a b = Environment -> a -> Either Error (Environment, b)
