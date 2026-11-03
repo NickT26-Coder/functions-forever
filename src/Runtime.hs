@@ -106,20 +106,20 @@ execute env (SExpressionStatement expression) = executeExpressionStatement env e
 
 executeVariableDeclaration :: RuntimeFn (Token, Expression) ExecutionFlow
 executeVariableDeclaration env (Token _ (TIdentifier name), value) = do
-  (env, value) <- evaluate env value
-  Right (environmentPut env name value, Continue)
+  (envAfterValue, evaluated) <- evaluate env value
+  Right (environmentPut envAfterValue name evaluated, Continue)
 
 executeFunctionDeclaration :: RuntimeFn (Token, [Token], [Statement]) ExecutionFlow
 executeFunctionDeclaration env (newVariable, params, body) = undefined
 
 executeIfStatement :: RuntimeFn (Token, Expression, Statement, Maybe Statement) ExecutionFlow
 executeIfStatement env (keyword, condition, trueBranch, falseBranch) = do
-  (env, result) <- evaluate env condition
+  (envAfterCondition, result) <- evaluate env condition
   if result == VBoolean True then
-    execute env trueBranch
+    execute envAfterCondition trueBranch
   else case falseBranch of
-    Nothing -> Right (env, Continue)
-    Just stmt -> execute env stmt
+    Nothing -> Right (envAfterCondition, Continue)
+    Just stmt -> execute envAfterCondition stmt
 
 executeWhileStatement :: RuntimeFn (Token, Expression, Statement) ExecutionFlow
 executeWhileStatement env (keyword, condition, loopBody) = undefined
@@ -128,12 +128,12 @@ executeReturnStatement :: RuntimeFn (Token, Expression) ExecutionFlow
 executeReturnStatement env (keyword, value) = undefined
 
 executeBlockStatement :: RuntimeFn (Token, [Statement]) ExecutionFlow
-executeBlockStatement (Environment globals scopes out) (openBrace, body) = do
+executeBlockStatement (Environment globals scopes printed) (openBrace, body) = do
   -- create a new scope for the block
-  let newEnv = Environment globals (Map.empty : scopes) out
-  (Environment globalsAfter scopesAfter out, result) <- executeBlockBody newEnv body
+  let newEnv = Environment globals (Map.empty : scopes) printed
+  (Environment globalsAfter scopesAfter printedAfter, result) <- executeBlockBody newEnv body
   -- exclude the innermost scope just created
-  Right $ (Environment globalsAfter (drop 1 scopesAfter) out, result)
+  Right $ (Environment globalsAfter (drop 1 scopesAfter) printedAfter, result)
 
 executeBlockBody :: RuntimeFn ([Statement]) ExecutionFlow
 executeBlockBody env [] = Right (env, Continue)
@@ -161,8 +161,8 @@ evaluate env (EVariable value) = evaluateVariable env value
 
 evaluateAssignment :: RuntimeFn (Token, Expression) Value
 evaluateAssignment env (Token _ (TIdentifier target), value) = do
-  (env, value) <- evaluate env value
-  Right (environmentPut env target value, value)
+  (envAfterValue, evaluated) <- evaluate env value
+  Right (environmentPut envAfterValue target evaluated, evaluated)
 
 evaluateLogical :: RuntimeFn (Expression, Token, Expression) Value
 evaluateLogical env (left, operator, right) = undefined
@@ -178,10 +178,10 @@ evaluateProduct env (left, operator, right) = undefined
 
 evaluateUnary :: RuntimeFn (Token, Expression) Value
 evaluateUnary env (Token n operator, object) = do
-  (env, objectValue) <- evaluate env object
+  (envAfterObject, objectValue) <- evaluate env object
   case (operator, objectValue) of
-    (TMinus, VNumber num) -> Right (env, VNumber $ -num)
-    (TNot, VBoolean bool) -> Right (env, VBoolean $ not bool)
+    (TMinus, VNumber num) -> Right (envAfterObject, VNumber $ -num)
+    (TNot, VBoolean bool) -> Right (envAfterObject, VBoolean $ not bool)
     _ -> Left $ Error n ("Operation '" ++ show operator ++ "' not supported on value of " ++ displayValue objectValue)
 
 evaluateCall :: RuntimeFn (Expression, Token, [Expression]) Value
