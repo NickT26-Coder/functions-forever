@@ -93,7 +93,9 @@ interpret env str = case runProgram env str of
       (SExpressionStatement (expr) : _) -> evaluate env expr
       _ -> undefined
 
-execute :: RuntimeFn Statement ()
+data ExecutionFlow = Continue | Returned Value
+      
+execute :: RuntimeFn Statement ExecutionFlow
 execute env (SVariableDeclaration newName value) = executeVariableDeclaration env (newName, value)
 execute env (SFunctionDeclaration newVariable params body) = executeFunctionDeclaration env (newVariable, params, body)
 execute env (SIfStatement keyword condition trueBranch falseBranch) = executeIfStatement env (keyword, condition, trueBranch, falseBranch)
@@ -102,44 +104,46 @@ execute env (SReturnStatement keyword value) = executeReturnStatement env (keywo
 execute env (SBlockStatement openBrace body) = executeBlockStatement env (openBrace, body)
 execute env (SExpressionStatement expression) = executeExpressionStatement env expression
 
-executeVariableDeclaration :: RuntimeFn (Token, Expression) ()
+executeVariableDeclaration :: RuntimeFn (Token, Expression) ExecutionFlow
 executeVariableDeclaration env (Token _ (TIdentifier name), value) = do
   (env, value) <- evaluate env value
-  Right (environmentPut env name value, ())
+  Right (environmentPut env name value, Continue)
 
-executeFunctionDeclaration :: RuntimeFn (Token, [Token], [Statement]) ()
+executeFunctionDeclaration :: RuntimeFn (Token, [Token], [Statement]) ExecutionFlow
 executeFunctionDeclaration env (newVariable, params, body) = undefined
 
-executeIfStatement :: RuntimeFn (Token, Expression, Statement, Maybe Statement) ()
+executeIfStatement :: RuntimeFn (Token, Expression, Statement, Maybe Statement) ExecutionFlow
 executeIfStatement env (keyword, condition, trueBranch, falseBranch) = do
   (env, result) <- evaluate env condition
   if result == VBoolean True then
     execute env trueBranch
   else case falseBranch of
-    Nothing -> Right (env, ())
+    Nothing -> Right (env, Continue)
     Just stmt -> execute env stmt
 
-executeWhileStatement :: RuntimeFn (Token, Expression, Statement) ()
+executeWhileStatement :: RuntimeFn (Token, Expression, Statement) ExecutionFlow
 executeWhileStatement env (keyword, condition, loopBody) = undefined
 
-executeReturnStatement :: RuntimeFn (Token, Expression) ()
+executeReturnStatement :: RuntimeFn (Token, Expression) ExecutionFlow
 executeReturnStatement env (keyword, value) = undefined
 
-executeBlockStatement :: RuntimeFn (Token, [Statement]) ()
+executeBlockStatement :: RuntimeFn (Token, [Statement]) ExecutionFlow
 executeBlockStatement (Environment globals scopes out) (openBrace, body) = do
   -- create a new scope for the block
   let newEnv = Environment globals (Map.empty : scopes) out
   (Environment globalsAfter scopesAfter out, result) <- executeBlockBody newEnv body
   -- exclude the innermost scope just created
-  Right $ (Environment globalsAfter (drop 1 scopesAfter) out, ())
+  Right $ (Environment globalsAfter (drop 1 scopesAfter) out, result)
 
-executeBlockBody :: RuntimeFn ([Statement]) ()
-executeBlockBody env [] = Right (env, ())
+executeBlockBody :: RuntimeFn ([Statement]) ExecutionFlow
+executeBlockBody env [] = Right (env, Continue)
 executeBlockBody env (stmt : after) = do
-  (envAfter, _) <- execute env stmt
-  executeBlockBody envAfter after
+  (envAfter, flowAfter) <- execute env stmt
+  case flowAfter of
+    Continue -> executeBlockBody envAfter after
+    flow@(Returned _) -> Right (envAfter, flow)
 
-executeExpressionStatement :: RuntimeFn Expression ()
+executeExpressionStatement :: RuntimeFn Expression ExecutionFlow
 executeExpressionStatement env expression = undefined
 
 evaluate :: RuntimeFn Expression Value
