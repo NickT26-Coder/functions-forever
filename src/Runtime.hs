@@ -125,7 +125,18 @@ executeReturnStatement :: RuntimeFn (Token, Expression) ()
 executeReturnStatement env (keyword, value) = undefined
 
 executeBlockStatement :: RuntimeFn (Token, [Statement]) ()
-executeBlockStatement env (openBrace, body) = undefined
+executeBlockStatement (Environment globals scopes out) (openBrace, body) = do
+  -- create a new scope for the block
+  let newEnv = Environment globals (Map.empty : scopes) out
+  (Environment globalsAfter scopesAfter out, result) <- executeBlockBody newEnv body
+  -- exclude the innermost scope just created
+  Right $ (Environment globalsAfter (drop 1 scopesAfter) out, ())
+
+executeBlockBody :: RuntimeFn ([Statement]) ()
+executeBlockBody env [] = Right (env, ())
+executeBlockBody env (stmt : after) = do
+  (envAfter, _) <- execute env stmt
+  executeBlockBody envAfter after
 
 executeExpressionStatement :: RuntimeFn Expression ()
 executeExpressionStatement env expression = undefined
