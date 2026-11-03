@@ -117,6 +117,7 @@ executeIfStatement env (keyword, condition, trueBranch, falseBranch) = do
     execute env trueBranch
   else case falseBranch of
     Nothing -> Right (env, ())
+    Just stmt -> execute env stmt
 
 executeWhileStatement :: RuntimeFn (Token, Expression, Statement) ()
 executeWhileStatement env (keyword, condition, loopBody) = undefined
