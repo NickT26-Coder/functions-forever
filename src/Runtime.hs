@@ -160,7 +160,9 @@ evaluate env (EBoolean value) = evaluateBoolean env value
 evaluate env (EVariable value) = evaluateVariable env value
 
 evaluateAssignment :: RuntimeFn (Token, Expression) Value
-evaluateAssignment env (Token _ (TIdentifier target), value) = do
+evaluateAssignment env (Token n (TIdentifier target), value) = do
+  _ <- case environmentGet env target of
+    Nothing -> Left $ Error n ("Undefined variable '" ++ target ++ "'")
   (envAfterValue, evaluated) <- evaluate env value
   Right (environmentPut envAfterValue target evaluated, evaluated)
 
