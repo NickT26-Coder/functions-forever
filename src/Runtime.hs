@@ -11,17 +11,27 @@ import Parsing (parse)
 import Syntax
 import Tokens (tokenize)
 
-data Environment = Environment {globals :: Map.Map String Value, functionScopes :: [Map.Map String Value]}
-
-newEnvironment = Environment Map.empty []
+data Environment = Environment
+  { globals :: Map.Map String Value,
+    scopes :: [Map.Map String Value]
+  }
+  deriving (Eq)
 
 environmentGet :: Environment -> String -> Maybe Value
-environmentGet (Environment globals []) name = Map.lookup name globals
-environmentGet (Environment _ (scope : _)) name = Map.lookup name scope
+environmentGet (Environment globals scopes) name = case searchScopes scopes of
+  Nothing -> Map.lookup name globals
+  foundInScopes -> foundInScopes
+ where
+  searchScopes :: [Map.Map String Value] -> Maybe Value
+  searchScopes [] = Nothing
+  searchScopes (curScope : outerScopes) = case Map.lookup name curScope of
+    Nothing -> searchScopes outerScopes
+    found -> found
 
 environmentPut :: Environment -> String -> Value -> Environment
 environmentPut (Environment globals []) name value = Environment (Map.insert name value globals) []
-environmentPut (Environment globals (scope : outerScopes)) name value = Environment globals ((Map.insert name value scope) : outerScopes)
+environmentPut (Environment globals (scope : outerScopes)) name value =
+  Environment globals ((Map.insert name value scope) : outerScopes)
 
 type RuntimeFn a b = Environment -> a -> Either Error (Environment, b)
 
