@@ -74,7 +74,7 @@ newEnvironment = Environment standardLibrary [] []
 printImplementation :: RuntimeFn (Int, [Value]) Value
 -- just concatenate it to the list of outputs
 printImplementation (Environment g s outputs) (_, [arg]) = Right $ (Environment g s (displayValue arg : outputs), VNothing)
-printImplementation env (n, _) = Left $ Error n ("Expected " ++ show n ++ " arguments.")
+printImplementation env (n, args) = Left $ Error n ("Expected " ++ show n ++ " argument(s), got " ++ show (length args) ++ ".")
 
 interpret :: Environment -> [Char] -> IO Environment
 -- TODO: replace expression evaluation with statement execution
@@ -221,7 +221,7 @@ evaluateArguments env [] = Right (env, [])
 evaluateArguments env (expr : after) = do
   (envAfterHead, headValue) <- evaluate env expr
   (envAfterTail, tailValues) <- evaluateArguments envAfterHead after
-  Right (envAfterTail, tailValues)
+  Right (envAfterTail, headValue : tailValues)
 
 runFunction :: RuntimeFn [Statement] Value
 runFunction env [] = Right (env, VNothing)
