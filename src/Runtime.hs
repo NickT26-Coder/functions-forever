@@ -16,7 +16,6 @@ data Environment = Environment
     scopes :: [Map.Map String Value],
     totalPrinted :: [String]
   }
-  deriving (Eq)
 
 environmentGet :: Environment -> String -> Maybe Value
 environmentGet (Environment globals scopes _) name = case searchScopes scopes of
