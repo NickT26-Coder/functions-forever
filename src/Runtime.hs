@@ -95,7 +95,7 @@ interpret env str = case runProgram env str of
       _ -> undefined
 
 data ExecutionFlow = Continue | Returned Value
-      
+
 execute :: RuntimeFn Statement ExecutionFlow
 execute env (SVariableDeclaration newName value) = executeVariableDeclaration env (newName, value)
 execute env (SFunctionDeclaration newVariable params body) = executeFunctionDeclaration env (newVariable, params, body)
@@ -112,12 +112,12 @@ executeVariableDeclaration env (Token _ (TIdentifier name), value) = do
 
 executeFunctionDeclaration :: RuntimeFn (Token, [Token], [Statement]) ExecutionFlow
 executeFunctionDeclaration env ((Token _ (TIdentifier name), paramTokens, body)) = do
-  paramStrings <- mapM getStringOfIdent paramTokens 
+  paramStrings <- mapM getStringOfIdent paramTokens
   Right (environmentPut env name (VFunction paramStrings body), Continue)
-   where
-    getStringOfIdent :: Token -> Either Error String
-    getStringOfIdent (Token _ (TIdentifier str)) = Right str
-    getStringOfIdent (Token n _) = Left $ Error n "Expected identifier token"
+ where
+  getStringOfIdent :: Token -> Either Error String
+  getStringOfIdent (Token _ (TIdentifier str)) = Right str
+  getStringOfIdent (Token n _) = Left $ Error n "Expected identifier token"
 
 executeIfStatement :: RuntimeFn (Token, Expression, Statement, Maybe Statement) ExecutionFlow
 executeIfStatement env (keyword, condition, trueBranch, falseBranch) = do
@@ -201,9 +201,11 @@ evaluateCall env (object, (Token n _), args) = do
   (Environment globals scopes printed, argValues) <- evaluateArguments env args
   case objectValue of
     (VFunction params body) -> do
-      _ <- if length params /= length argValues
-      then Left $ Error n "Incorrect number of arguments."
-      else Right ()
+      _ <-
+        if length params /= length argValues then
+          Left $ Error n "Incorrect number of arguments."
+        else
+          Right ()
       let topScope = Map.fromList $ zip params argValues
       let innerEnv = Environment globals [topScope] printed
       (Environment globalsAfter _ printedAfter, returnValue) <- runFunction innerEnv body
