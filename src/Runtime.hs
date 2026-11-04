@@ -119,13 +119,13 @@ executeFunctionDeclaration env ((Token _ (TIdentifier name), paramTokens, body))
   getStringOfIdent (Token n _) = Left $ Error n "Expected identifier token"
 
 executeIfStatement :: RuntimeFn (Token, Expression, Statement, Maybe Statement) ExecutionFlow
-executeIfStatement env (keyword, condition, trueBranch, falseBranch) = do
+executeIfStatement env ((Token n _), condition, trueBranch, falseBranch) = do
   (envAfterCondition, result) <- evaluate env condition
-  if result == VBoolean True then
-    execute envAfterCondition trueBranch
-  else case falseBranch of
-    Nothing -> Right (envAfterCondition, Continue)
-    Just stmt -> execute envAfterCondition stmt
+  case (result, falseBranch) of
+    (VBoolean True, _) -> execute envAfterCondition trueBranch
+    (VBoolean False, Nothing) -> Right (envAfterCondition, Continue)
+    (VBoolean False, Just stmt) -> execute envAfterCondition stmt
+    _ -> Left $ Error n ("Expected condition to be a boolean value, instead got value of " ++ displayValue result)
 
 executeWhileStatement :: RuntimeFn (Token, Expression, Statement) ExecutionFlow
 executeWhileStatement env (keyword, condition, loopBody) = undefined
