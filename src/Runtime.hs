@@ -196,7 +196,40 @@ evaluateUnary env (Token n operator, object) = do
     _ -> Left $ Error n ("Operation '" ++ getTokenName operator ++ "' not supported on value of " ++ displayValue objectValue)
 
 evaluateCall :: RuntimeFn (Expression, Token, [Expression]) Value
-evaluateCall env (object, openParen, args) = undefined
+evaluateCall env (object, (Token n _), args) = do
+  (envAfterObject, objectValue) <- evaluate env object
+  (Environment globals scopes printed, argValues) <- evaluateArguments env args
+  case objectValue of
+    (VFunction params body) -> do
+      _ <- if length params /= length argValues
+      then Left $ Error n "Incorrect number of arguments."
+      else Right ()
+      let topScope = Map.fromList $ zip params argValues
+      let innerEnv = Environment globals [topScope] printed
+      (Environment globalsAfter _ printedAfter, returnValue) <- runFunction innerEnv body
+      let envAfterCall = Environment globalsAfter scopes printedAfter
+      Right (envAfterCall, returnValue)
+    (VBuiltinFunction (fn)) -> do
+      -- builtin functions might change globals idk
+      (Environment globalsAfter _ printedAfter, returnValue) <- fn env (n, argValues)
+      let envAfterCall = Environment globalsAfter scopes printedAfter
+      Right (envAfterCall, returnValue)
+    _ -> Left $ Error n ("Cannot call a value of " ++ displayValue objectValue)
+
+evaluateArguments :: RuntimeFn [Expression] [Value]
+evaluateArguments env [] = Right (env, [])
+evaluateArguments env (expr : after) = do
+  (envAfterHead, headValue) <- evaluate env expr
+  (envAfterTail, tailValues) <- evaluateArguments envAfterHead after
+  Right (envAfterTail, tailValues)
+
+runFunction :: RuntimeFn [Statement] Value
+runFunction env [] = Right (env, VNothing)
+runFunction env (stmt : after) = do
+  (envAfter, flow) <- execute env stmt
+  case flow of
+    Returned value -> Right (envAfter, value)
+    Continue -> runFunction envAfter after
 
 evaluateNumber :: RuntimeFn Token Value
 evaluateNumber env (Token _ (TNumber n)) = Right (env, VNumber n)
