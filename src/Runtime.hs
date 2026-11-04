@@ -76,22 +76,31 @@ printImplementation (Environment g s outputs) (_, [arg]) = Right $ (Environment 
 printImplementation env (n, args) = Left $ Error n ("Expected " ++ show n ++ " argument(s), got " ++ show (length args) ++ ".")
 
 interpret :: Environment -> [Char] -> IO Environment
--- TODO: replace expression evaluation with statement execution
-interpret env str = case runProgram env str of
-  (Right (envAfter, result)) -> do
-    putStrLn $ displayValue result
-    return envAfter
-  (Left (err)) -> do
-    putStrLn $ displayError err
-    return env
+interpret env str =
+  case programResult of
+    (Right (envAfter, result)) -> do
+      putStrLn $ displayValue result
+      return envAfter
+    (Left (err)) -> do
+      putStrLn $ displayError err
+      return env
  where
-  runProgram :: RuntimeFn [Char] Value
-  runProgram env str = do
+  programResult :: Either Error (Environment, Value)
+  programResult = do
     tokens <- tokenize str
     stmts <- parse tokens
-    case stmts of
-      (SExpressionStatement (expr) : _) -> evaluate env expr
-      _ -> undefined
+    runProgram env stmts
+
+runProgram :: RuntimeFn [Statement] Value
+-- no last expression, print nothing
+runProgram env [] = Right (env, VString "")
+-- if the last line is an expression, we return that value
+runProgram env [SExpressionStatement expr] = evaluate env expr
+runProgram env (stmt : after) = do
+  (envAfter, flow) <- execute env stmt
+  case flow of
+    Returned value -> Left $ Error (stmtLineNumber stmt) "Cannot return from outside a function."
+    Continue -> runFunction envAfter after
 
 data ExecutionFlow = Continue | Returned Value
 
