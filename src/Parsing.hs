@@ -67,10 +67,10 @@ parseIfStatement (keyword@(Token _ TIf) : afterIf) = do
   (_, afterOpenParen) <- expect TOpenParen afterIf
   (condition, afterCondition) <- parseExpression afterOpenParen
   (_, afterCloseParen) <- expect TCloseParen afterCondition
-  (trueBranch, afterTrueBranch) <- parseBlock afterCloseParen
+  (trueBranch, afterTrueBranch) <- parseStatement afterCloseParen
   case afterTrueBranch of
     Token _ TElse : afterElse -> do
-      (falseBranch, afterFalseBranch) <- parseBlock afterElse
+      (falseBranch, afterFalseBranch) <- parseStatement afterElse
       Right (SIfStatement keyword condition trueBranch (Just falseBranch), afterFalseBranch)
     _ -> Right (SIfStatement keyword condition trueBranch Nothing, afterTrueBranch)
 
@@ -214,5 +214,4 @@ expect expectedValue (token@(Token n value) : after) =
   if expectedValue == value then
     Right (token, after)
   else
-    -- remove the T prefix from token (drop 1)
-    Left $ Error n ("Expected a " ++ (drop 1 $ show expectedValue) ++ " token.")
+    Left $ Error n ("Expected a " ++ (getTokenName expectedValue) ++ " token.")

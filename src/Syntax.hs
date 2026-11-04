@@ -6,6 +6,7 @@ module Syntax (
   Statement (..),
   displayError,
   replaceLineNumber,
+  getTokenName,
   exprLineNumber,
   stmtLineNumber,
 ) where
@@ -62,6 +63,10 @@ data TokenValue
   | TCloseBrace
   | TEOF
   deriving (Eq, Show)
+
+getTokenName :: TokenValue -> String
+-- drop 1 to remove the T- prefix
+getTokenName val = drop 1 (show val)
 
 -- Each expression that can fail must have a token for error locating
 -- This is usually the operator
