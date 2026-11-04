@@ -73,7 +73,7 @@ newEnvironment = Environment standardLibrary [] []
 
 printImplementation :: RuntimeFn (Int, [Value]) Value
 -- just concatenate it to the list of outputs
-printImplementation (Environment g s outputs) (_, [arg]) = Right $ (Environment g s (displayValue arg : outputs), VNothing)
+printImplementation (Environment g s outputs) (_, [arg]) = Right $ (Environment g s ((displayValue arg ++ "\n") : outputs), VNothing)
 printImplementation env (n, args) = Left $ Error n ("Expected " ++ show n ++ " argument(s), got " ++ show (length args) ++ ".")
 
 interpret :: Environment -> [Char] -> IO Environment
