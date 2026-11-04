@@ -16,6 +16,7 @@ tokenize = loop 1
 
 getToken :: Int -> [Char] -> Either Error (Token, Int, [Char])
 getToken n "" = Right (Token n TEOF, n, "")
+getToken n ('\"' : after) = Right (getStringToken n after)
 getToken n ('=' : '=' : after) = Right (Token n TDoubleEqual, n, after)
 getToken n ('=' : after) = Right (Token n TSingleEqual, n, after)
 getToken n (' ' : after) = getToken n after
@@ -31,9 +32,11 @@ getNumberToken n s = (Token n (TNumber (read numericChars)), n, after)
  where
   (numericChars, after) = span isNumber s
 
--- TODO: Encountered newlines should increment the newline
 getStringToken :: Int -> [Char] -> (Token, Int, [Char])
-getStringToken = undefined
+getStringToken n s = (Token n (TString stringContents), n + lineDelta, drop 1 afterIncludingQuote)
+ where
+  (stringContents, afterIncludingQuote) = span (/= '\"') s
+  lineDelta = length $ filter (== '\n') stringContents
 
 -- TODO: If the identifier is equal to one of the keywords, use that instead
 getIdentifierToken :: Int -> [Char] -> (Token, Int, [Char])
