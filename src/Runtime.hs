@@ -42,7 +42,7 @@ data Value
   | VString String
   | VBoolean Bool
   | VFunction [String] [Statement]
-  | VBuiltinFunction (RuntimeFn [Value] Value)
+  | VBuiltinFunction (RuntimeFn (Int, [Value]) Value)
   | VNothing
 
 instance Eq Value where
@@ -71,9 +71,10 @@ standardLibrary =
 newEnvironment :: Environment
 newEnvironment = Environment standardLibrary [] []
 
-printImplementation :: RuntimeFn [Value] Value
+printImplementation :: RuntimeFn (Int, [Value]) Value
 -- just concatenate it to the list of outputs
-printImplementation (Environment g s outputs) (arg : _) = Right $ (Environment g s (displayValue arg : outputs), VNothing)
+printImplementation (Environment g s outputs) (_, [arg]) = Right $ (Environment g s (displayValue arg : outputs), VNothing)
+printImplementation env (n, _) = Left $ Error n ("Expected " ++ show n ++ " arguments.")
 
 interpret :: Environment -> [Char] -> IO Environment
 -- TODO: replace expression evaluation with statement execution
