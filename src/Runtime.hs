@@ -7,6 +7,7 @@ module Runtime (
 ) where
 
 import Control.Applicative (asum)
+import Data.Either (either)
 import qualified Data.Map as Map
 import Parsing (parse)
 import Syntax
@@ -27,7 +28,7 @@ environmentPut (Environment globals [] printed) name value =
 environmentPut (Environment globals (scope : outerScopes) printed) name value =
   Environment globals ((Map.insert name value scope) : outerScopes) printed
 
-type RuntimeFn a b = Environment -> a -> Either Error (Environment, b)
+type RuntimeFn a b = Environment -> a -> Either (Environment, Error) (Environment, b)
 
 data Value
   = VNumber Integer
@@ -66,7 +67,7 @@ newEnvironment = Environment standardLibrary [] []
 printImplementation :: RuntimeFn (Int, [Value]) Value
 -- just concatenate it to the list of outputs
 printImplementation (Environment g s outputs) (_, [arg]) = Right $ (Environment g s ((displayValue arg ++ "\n") : outputs), VNothing)
-printImplementation env (n, args) = Left $ Error n ("Expected " ++ show n ++ " argument(s), got " ++ show (length args) ++ ".")
+printImplementation env (n, args) = Left (env, Error n ("Expected " ++ show n ++ " argument(s), got " ++ show (length args) ++ "."))
 
 interpret :: Environment -> [Char] -> IO Environment
 interpret env str =
@@ -75,15 +76,15 @@ interpret env str =
       mapM_ putStr outputs
       putStrLn $ displayValue result
       return envAfter
-    (Left (err)) -> do
+    (Left (envAfter@(Environment _ _ outputs), err)) -> do
+      mapM_ putStr outputs
       putStrLn $ displayError err
-      return env
+      return envAfter
  where
-  programResult :: Either Error (Environment, Value)
-  programResult = do
-    tokens <- tokenize str
-    stmts <- parse tokens
-    runProgram env stmts
+  programResult :: Either (Environment, Error) (Environment, Value)
+  programResult = case (tokenize str >>= parse) of
+    Right stmts -> runProgram env stmts
+    Left e -> Left (env, e) -- obviously no change in environment if we never make it to runtime
 
 runProgram :: RuntimeFn [Statement] Value
 -- no last expression, print nothing
@@ -93,7 +94,7 @@ runProgram env [SExpressionStatement expr] = evaluate env expr
 runProgram env (stmt : after) = do
   (envAfter, flow) <- execute env stmt
   case flow of
-    Returned value -> Left $ Error (stmtLineNumber stmt) "Cannot return from outside a function."
+    Returned value -> Left (env, Error (stmtLineNumber stmt) "Cannot return from outside a function.")
     Continue -> runFunction envAfter after
 
 data ExecutionFlow = Continue | Returned Value
@@ -117,9 +118,9 @@ executeFunctionDeclaration env ((Token _ (TIdentifier name), paramTokens, body))
   paramStrings <- mapM getStringOfIdent paramTokens
   Right (environmentPut env name (VFunction paramStrings body), Continue)
  where
-  getStringOfIdent :: Token -> Either Error String
+  getStringOfIdent :: Token -> Either (Environment, Error) String
   getStringOfIdent (Token _ (TIdentifier str)) = Right str
-  getStringOfIdent (Token n _) = Left $ Error n "Expected identifier token"
+  getStringOfIdent (Token n _) = Left (env, Error n "Expected identifier token")
 
 executeIfStatement :: RuntimeFn (Token, Expression, Statement, Maybe Statement) ExecutionFlow
 executeIfStatement env ((Token n _), condition, trueBranch, falseBranch) = do
@@ -128,7 +129,7 @@ executeIfStatement env ((Token n _), condition, trueBranch, falseBranch) = do
     (VBoolean True, _) -> execute envAfterCondition trueBranch
     (VBoolean False, Nothing) -> Right (envAfterCondition, Continue)
     (VBoolean False, Just stmt) -> execute envAfterCondition stmt
-    _ -> Left $ Error n ("Expected condition to be a boolean value, instead got value of " ++ displayValue result)
+    _ -> Left (env, Error n ("Expected condition to be a boolean value, instead got value of " ++ displayValue result))
 
 executeWhileStatement :: RuntimeFn (Token, Expression, Statement) ExecutionFlow
 executeWhileStatement env (keyword, condition, loopBody) = undefined
@@ -173,7 +174,7 @@ evaluate env (EVariable value) = evaluateVariable env value
 evaluateAssignment :: RuntimeFn (Token, Expression) Value
 evaluateAssignment env (Token n (TIdentifier target), value) = do
   _ <- case environmentGet env target of
-    Nothing -> Left $ Error n ("Undefined variable '" ++ target ++ "'")
+    Nothing -> Left (env, Error n ("Undefined variable '" ++ target ++ "'"))
   (envAfterValue, evaluated) <- evaluate env value
   Right (environmentPut envAfterValue target evaluated, evaluated)
 
@@ -195,7 +196,7 @@ evaluateUnary env (Token n operator, object) = do
   case (operator, objectValue) of
     (TMinus, VNumber num) -> Right (envAfterObject, VNumber $ -num)
     (TNot, VBoolean bool) -> Right (envAfterObject, VBoolean $ not bool)
-    _ -> Left $ Error n ("Operation '" ++ getTokenName operator ++ "' not supported on value of " ++ displayValue objectValue)
+    _ -> Left (env, Error n ("Operation '" ++ getTokenName operator ++ "' not supported on value of " ++ displayValue objectValue))
 
 evaluateCall :: RuntimeFn (Expression, Token, [Expression]) Value
 evaluateCall env (object, (Token n _), args) = do
@@ -205,7 +206,7 @@ evaluateCall env (object, (Token n _), args) = do
     (VFunction params body) -> do
       _ <-
         if length params /= length argValues then
-          Left $ Error n "Incorrect number of arguments."
+          Left (env, Error n "Incorrect number of arguments.")
         else
           Right ()
       let topScope = Map.fromList $ zip params argValues
@@ -218,7 +219,7 @@ evaluateCall env (object, (Token n _), args) = do
       (Environment globalsAfter _ printedAfter, returnValue) <- fn env (n, argValues)
       let envAfterCall = Environment globalsAfter scopes printedAfter
       Right (envAfterCall, returnValue)
-    _ -> Left $ Error n ("Cannot call a value of " ++ displayValue objectValue)
+    _ -> Left (env, Error n ("Cannot call a value of " ++ displayValue objectValue))
 
 evaluateArguments :: RuntimeFn [Expression] [Value]
 evaluateArguments env [] = Right (env, [])
@@ -247,4 +248,4 @@ evaluateBoolean env value = undefined
 evaluateVariable :: RuntimeFn Token Value
 evaluateVariable env (Token n (TIdentifier variableName)) = case environmentGet env variableName of
   Just value -> Right (env, value)
-  Nothing -> Left $ Error n ("Undefined variable '" ++ variableName ++ "'")
+  Nothing -> Left (env, Error n ("Undefined variable '" ++ variableName ++ "'"))
