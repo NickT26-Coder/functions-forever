@@ -6,6 +6,7 @@ module Runtime (
   displayValue,
 ) where
 
+import Control.Applicative (asum)
 import qualified Data.Map as Map
 import Parsing (parse)
 import Syntax
@@ -18,15 +19,7 @@ data Environment = Environment
   }
 
 environmentGet :: Environment -> String -> Maybe Value
-environmentGet (Environment globals scopes _) name = case searchScopes scopes of
-  Nothing -> Map.lookup name globals
-  foundInScopes -> foundInScopes
- where
-  searchScopes :: [Map.Map String Value] -> Maybe Value
-  searchScopes [] = Nothing
-  searchScopes (curScope : outerScopes) = case Map.lookup name curScope of
-    Nothing -> searchScopes outerScopes
-    found -> found
+environmentGet (Environment globals scopes _) name = asum $ map (Map.lookup name) (scopes ++ [globals])
 
 environmentPut :: Environment -> String -> Value -> Environment
 environmentPut (Environment globals [] printed) name value =
