@@ -71,7 +71,8 @@ printImplementation env (n, args) = Left $ Error n ("Expected " ++ show n ++ " a
 interpret :: Environment -> [Char] -> IO Environment
 interpret env str =
   case programResult of
-    (Right (envAfter, result)) -> do
+    (Right (envAfter@(Environment _ _ outputs), result)) -> do
+      mapM_ putStr outputs
       putStrLn $ displayValue result
       return envAfter
     (Left (err)) -> do
