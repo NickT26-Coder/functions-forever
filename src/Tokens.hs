@@ -21,6 +21,21 @@ getToken n ('=' : '=' : after) = Right (Token n TDoubleEqual, n, after)
 getToken n ('=' : after) = Right (Token n TSingleEqual, n, after)
 getToken n (' ' : after) = getToken n after
 -- TODO: the rest of the exact-character tokens go here
+getToken n ('&' : after) = Right (Token n TAnd, n, after)
+getToken n ('|': after) = Right (Token n TOr, n, after)
+getToken n ('>': '=' : after) = Right (Token n TGreaterEqual, n, after)
+getToken n ('<': '=' : after) = Right (Token n TLessEqual, n, after)
+getToken n ('!': '=' : after) = Right (Token n TNotEqual, n, after)
+getToken n ('>': after) = Right (Token n TGreater, n, after)
+getToken n ('<': after) = Right (Token n TLess, n, after)
+getToken n ('+': after) = Right (Token n TPlus, n, after)
+getToken n ('-': after) = Right (Token n TMinus, n, after)
+getToken n ('*': after) = Right (Token n TTimes, n, after)
+getToken n ('/': after) = Right (Token n TDivide, n, after)
+getToken n ('!': after) = Right (Token n TNot, n, after)
+
+
+
 -- Remember that whitespace should simply be skipped, and newlines should increment the line number
 getToken n all@(c : _)
   | isNumber c = Right $ getNumberToken n all
