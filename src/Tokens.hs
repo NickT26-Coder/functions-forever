@@ -9,13 +9,13 @@ tokenize :: [Char] -> Either Error [Token]
 tokenize = loop 1
  where
   loop :: Int -> [Char] -> Either Error [Token]
+  loop n "" = Right [Token n TEOF]
   loop n s = do
     (token, n, s) <- getToken n s
     tokensAfter <- loop n s
     Right $ token : tokensAfter
 
 getToken :: Int -> [Char] -> Either Error (Token, Int, [Char])
-getToken n "" = Right (Token n TEOF, n, "")
 getToken n ('\"' : after) = Right (getStringToken n after)
 getToken n ('=' : '=' : after) = Right (Token n TDoubleEqual, n, after)
 getToken n ('=' : after) = Right (Token n TSingleEqual, n, after)
