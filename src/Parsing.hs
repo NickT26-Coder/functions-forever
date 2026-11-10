@@ -79,7 +79,7 @@ parseWhileStatement (keyword@(Token _ TWhile) : afterWhile) = do
   (_, afterOpenParen) <- expect TOpenParen afterWhile
   (condition, afterCondition) <- parseExpression afterOpenParen
   (_, afterCloseParen) <- expect TCloseParen afterCondition
-  (body, afterBody) <- parseBlock afterCloseParen
+  (body, afterBody) <- parseStatement afterCloseParen
   Right (SWhileStatement keyword condition body, afterBody)
 
 parseReturnStatement :: ParseFn Statement
