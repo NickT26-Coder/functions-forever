@@ -105,10 +105,11 @@ interpret env str =
       unless (result == VNothing) $
         putStrLn $ displayValue result
       return envAfter
-    (Left (envAfter@(Environment _ _ outputs), err)) -> do
+    (Left (Environment g s outputs, err)) -> do
       mapM_ putStr outputs
       putStrLn $ displayError err
-      return envAfter
+      -- reset outputs because we just printed them
+      return $ Environment g s []
  where
   programResult :: Either (Environment, Error) (Environment, Value)
   programResult = case (tokenize str >>= parse) of
