@@ -158,7 +158,17 @@ executeIfStatement env ((Token n _), condition, trueBranch, falseBranch) = do
     _ -> Left (env, Error n ("Expected condition to be a boolean value, instead got value of " ++ displayValue result))
 
 executeWhileStatement :: RuntimeFn (Token, Expression, Statement) ExecutionFlow
-executeWhileStatement env (keyword, condition, loopBody) = undefined
+executeWhileStatement env (keyword@(Token n _), condition, loopBody) = loop env ()
+ where
+  loop :: RuntimeFn () ExecutionFlow
+  loop env _ = do
+    (envAfterCondition, result) <- evaluate env condition
+    (envAfterBody, flow) <- execute envAfterCondition loopBody
+    case (result, flow) of
+      (VBoolean False, _) -> Right (envAfterCondition, Continue)
+      (VBoolean True, Returned _) -> Right (envAfterBody, flow)
+      (VBoolean True, Continue) -> loop envAfterBody ()
+      _ -> Left (env, Error n ("Expected condition to be a boolean value, instead got value of " ++ displayValue result))
 
 executeReturnStatement :: RuntimeFn (Token, Expression) ExecutionFlow
 executeReturnStatement env (keyword, value) = do
