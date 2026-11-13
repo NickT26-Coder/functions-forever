@@ -33,9 +33,12 @@ getToken n ('-': after) = Right (Token n TMinus, n, after)
 getToken n ('*': after) = Right (Token n TTimes, n, after)
 getToken n ('/': after) = Right (Token n TDivide, n, after)
 getToken n ('!': after) = Right (Token n TNot, n, after)
-
-
-
+getToken n (',' : after) = Right (Token n TComma, n, after)
+getToken n (';' : after) = Right (Token n TSemicolon, n, after)
+getToken n ('(' : after) = Right (Token n TOpenParen, n, after)
+getToken n (')' : after) = Right (Token n TCloseParen, n, after)
+getToken n ('{' : after) = Right (Token n TOpenBrace, n, after)
+getToken n ('}' : after) = Right (Token n TCloseBrace, n, after)
 -- Remember that whitespace should simply be skipped, and newlines should increment the line number
 getToken n all@(c : _)
   | isNumber c = Right $ getNumberToken n all
