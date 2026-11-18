@@ -132,7 +132,16 @@ executeIfStatement env ((Token n _), condition, trueBranch, falseBranch) = do
     _ -> Left (env, Error n ("Expected condition to be a boolean value, instead got value of " ++ displayValue result))
 
 executeWhileStatement :: RuntimeFn (Token, Expression, Statement) ExecutionFlow
-executeWhileStatement env (keyword, condition, loopBody) = undefined
+executeWhileStatement env (keyword, condition, loopBody) = do 
+  (envAfterCondition, result) <- evaluate env condition
+  case result of 
+    VBoolean True -> do
+      (envAfterBody, flow) <- execute envAfterCondition loopBody
+      case flow of
+        Continue -> executeWhileStatement envAfterBody (keyword, condition, loopBody)
+        Returned value -> Right (envAfterBody, Returned value)
+    VBoolean False -> Right (envAfterCondition, Continue)
+    _ -> Left (env, Error (tLine keyword) ("expected boolean value, instead got a value of " ++ displayValue result)) 
 
 executeReturnStatement :: RuntimeFn (Token, Expression) ExecutionFlow
 executeReturnStatement env (keyword, value) = do
@@ -156,7 +165,9 @@ executeBlockBody env (stmt : after) = do
     flow@(Returned _) -> Right (envAfter, flow)
 
 executeExpressionStatement :: RuntimeFn Expression ExecutionFlow
-executeExpressionStatement env expression = undefined
+executeExpressionStatement env expression = do
+  (envAfter, _) <- evaluate env expression
+  Right (envAfter, Continue)
 
 evaluate :: RuntimeFn Expression Value
 evaluate env (EAssignment target value) = evaluateAssignment env (target, value)
@@ -179,16 +190,65 @@ evaluateAssignment env (Token n (TIdentifier target), value) = do
   Right (environmentPut envAfterValue target evaluated, evaluated)
 
 evaluateLogical :: RuntimeFn (Expression, Token, Expression) Value
-evaluateLogical env (left, operator, right) = undefined
+evaluateLogical env (left, operator, right) = do
+  (envAfterLeft, leftValue) <- evaluate env left
+  case (operator, leftValue) of
+    (Token _ TAnd, VBoolean False) -> Right (envAfterLeft, VBoolean False)
+    (Token _ TOr, VBoolean True) -> Right (envAfterLeft, VBoolean True)
+    (Token _ TAnd, VBoolean True) -> do
+      (envAfterRight, rightValue) <- evaluate envAfterLeft right
+      case rightValue of
+        VBoolean value -> Right (envAfterRight, VBoolean value)
+        _ -> Left (envAfterRight, Error (tLine operator) "expected boolean value")
+    (Token _ TOr, VBoolean False) -> do
+      (envAfterRight, rightValue) <- evaluate envAfterLeft right
+      case rightValue of
+        VBoolean value -> Right (envAfterRight, VBoolean value)
+        _ -> Left (envAfterRight, Error (tLine operator) "expected boolean value")
+    _ -> Left (envAfterLeft, Error (tLine operator) "expected boolean value")
 
 evaluateComparison :: RuntimeFn (Expression, Token, Expression) Value
-evaluateComparison env (left, operator, right) = undefined
+evaluateComparison env (left, operator, right) = do 
+  (envAfterLeft, leftValue) <- evaluate env left
+  (envAfterRight, rightValue) <- evaluate envAfterLeft right
+  case (operator, leftValue, rightValue) of
+    (Token _ TDoubleEqual, a, b) ->
+      Right (envAfterRight, VBoolean (a == b))
+    (Token _ TNotEqual, a, b) ->
+      Right (envAfterRight, VBoolean (a /= b))
+    (Token _ TGreater, VNumber a, VNumber b) ->
+      Right (envAfterRight, VBoolean (a > b))
+    (Token _ TLess, VNumber a, VNumber b) ->
+      Right (envAfterRight, VBoolean (a < b))
+    (Token _ TGreaterEqual, VNumber a, VNumber b) ->
+      Right (envAfterRight, VBoolean (a >= b))
+    (Token _ TLessEqual, VNumber a, VNumber b) ->
+      Right (envAfterRight, VBoolean (a <= b))
+    _ -> Left (envAfterLeft, Error (tLine operator) "invalid comparison")
 
 evaluateSum :: RuntimeFn (Expression, Token, Expression) Value
-evaluateSum env (left, operator, right) = undefined
+evaluateSum env (left, operator, right) = do
+  (envAfterLeft, leftValue) <- evaluate env left
+  (envAfterRight, rightValue) <- evaluate envAfterLeft right
+  case (operator, leftValue, rightValue) of
+    (Token _ TPlus, VNumber a, VNumber b) ->
+      Right (envAfterRight, VNumber (a + b))
+    (Token _ TMinus, VNumber a, VNumber b) ->
+      Right (envAfterRight, VNumber (a - b))
+    _ -> Left (envAfterLeft, Error (tLine operator) "exepected number values")
 
 evaluateProduct :: RuntimeFn (Expression, Token, Expression) Value
-evaluateProduct env (left, operator, right) = undefined
+evaluateProduct env (left, operator, right) = do
+  (envAfterLeft, leftValue) <- evaluate env left
+  (envAfterRight, rightValue) <- evaluate envAfterLeft right
+  case (operator, leftValue, rightValue) of
+    (Token _ TTimes, VNumber a, VNumber b) ->
+      Right (envAfterRight, VNumber (a * b))
+    (Token _ TDivide, VNumber _, VNumber 0) ->
+      Left (envAfterRight, Error (tLine operator) "cant divide by zero")
+    (Token _ TDivide, VNumber a, VNumber b) ->
+      Right (envAfterRight, VNumber (a `quot` b))
+    _ -> Left (envAfterLeft, Error (tLine operator) "expected number values")
 
 evaluateUnary :: RuntimeFn (Token, Expression) Value
 evaluateUnary env (Token n operator, object) = do
@@ -240,10 +300,15 @@ evaluateNumber :: RuntimeFn Token Value
 evaluateNumber env (Token _ (TNumber n)) = Right (env, VNumber n)
 
 evaluateString :: RuntimeFn Token Value
-evaluateString env value = undefined
+evaluateString env value = case value of
+  Token _ (TString contents) -> Right (env, VString contents)
+  _ -> Left (env, Error (tLine value) "expected string")
 
 evaluateBoolean :: RuntimeFn Token Value
-evaluateBoolean env value = undefined
+evaluateBoolean env value = case value of 
+  Token _ TTrue -> Right (env, VBoolean True)
+  Token _ TFalse -> Right (env, VBoolean False)
+  _ -> Left (env, Error (tLine value) "expected boolean")
 
 evaluateVariable :: RuntimeFn Token Value
 evaluateVariable env (Token n (TIdentifier variableName)) = case environmentGet env variableName of
