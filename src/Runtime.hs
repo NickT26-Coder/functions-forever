@@ -159,6 +159,9 @@ executeIfStatement env ((Token n _), condition, trueBranch, falseBranch) = do
 
 executeWhileStatement :: RuntimeFn (Token, Expression, Statement) ExecutionFlow
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> d8255cd (implemented remaining runtime functions)
 executeWhileStatement env (keyword, condition, loopBody) = do 
   (envAfterCondition, result) <- evaluate env condition
   case result of 
@@ -169,6 +172,7 @@ executeWhileStatement env (keyword, condition, loopBody) = do
         Returned value -> Right (envAfterBody, Returned value)
     VBoolean False -> Right (envAfterCondition, Continue)
     _ -> Left (env, Error (tLine keyword) ("expected boolean value, instead got a value of " ++ displayValue result)) 
+<<<<<<< HEAD
 =======
 executeWhileStatement env (keyword@(Token n _), condition, loopBody) = loop env ()
  where
@@ -182,6 +186,8 @@ executeWhileStatement env (keyword@(Token n _), condition, loopBody) = loop env 
       (VBoolean True, Continue) -> loop envAfterBody ()
       _ -> Left (env, Error n ("Expected condition to be a boolean value, instead got value of " ++ displayValue result))
 >>>>>>> e0cf4fa (feat: implemented executeWhileStatement)
+=======
+>>>>>>> d8255cd (implemented remaining runtime functions)
 
 executeReturnStatement :: RuntimeFn (Token, Expression) ExecutionFlow
 executeReturnStatement env (keyword, value) = do
