@@ -70,6 +70,7 @@ instance Eq Value where
   VFunction a1 a2 == VFunction b1 b2 = (a1 == b1 && a2 == b2)
   VBuiltinFunction _ == VBuiltinFunction _ = False
   VNothing == VNothing = True
+  _ == _ = False -- comparing any other values
 
 displayValue :: Value -> String
 displayValue (VNumber n) = show n
