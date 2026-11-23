@@ -11,6 +11,7 @@ import qualified Data.Map as Map
 import Parsing (parse)
 import Syntax
 import Tokens (tokenize)
+import Control.Monad (unless)
 
 data Environment = Environment
   { globals :: Map.Map String Value,
@@ -100,7 +101,9 @@ interpret env str =
   case programResult of
     (Right (envAfter@(Environment _ _ outputs), result)) -> do
       mapM_ putStr outputs
-      putStrLn $ displayValue result
+      -- Only print the result if there is a value
+      unless (result == VNothing) $
+        putStrLn $ displayValue result
       return envAfter
     (Left (envAfter@(Environment _ _ outputs), err)) -> do
       mapM_ putStr outputs
@@ -114,7 +117,7 @@ interpret env str =
 
 runProgram :: RuntimeFn [Statement] Value
 -- no last expression, print nothing
-runProgram env [] = Right (env, VString "")
+runProgram env [] = Right (env, VNothing)
 -- if the last line is an expression, we return that value
 runProgram env [SExpressionStatement expr] = evaluate env expr
 runProgram env (stmt : after) = do
