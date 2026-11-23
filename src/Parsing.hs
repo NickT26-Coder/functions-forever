@@ -105,8 +105,13 @@ parseBlock (openBrace@(Token _ TOpenBrace) : afterOpenBrace) = do
 parseExpressionStatement :: ParseFn Statement
 parseExpressionStatement ts = do
   (expr, afterExpr) <- parseExpression ts
-  (_, afterStatement) <- expect TSemicolon afterExpr
-  Right (SExpressionStatement expr, afterStatement)
+  case afterExpr of
+    -- Allow no semicolon if it's the end of the program
+    afterLastExpr@(Token _ TEOF : _) ->
+      Right (SExpressionStatement expr, afterLastExpr)
+    _ -> do
+      (_, afterStatement) <- expect TSemicolon afterExpr
+      Right (SExpressionStatement expr, afterStatement)
 
 parseExpression :: ParseFn Expression
 parseExpression = parseAssignment -- the lowest precedence
