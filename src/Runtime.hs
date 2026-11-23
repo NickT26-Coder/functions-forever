@@ -7,7 +7,6 @@ module Runtime (
 ) where
 
 import Control.Applicative (asum)
-import Data.Either (either)
 import qualified Data.Map as Map
 import Parsing (parse)
 import Syntax
