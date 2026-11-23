@@ -288,7 +288,7 @@ evaluateUnary env (Token n operator, object) = do
 evaluateCall :: RuntimeFn (Expression, Token, [Expression]) Value
 evaluateCall env (object, (Token n _), args) = do
   (envAfterObject, objectValue) <- evaluate env object
-  (Environment globals scopes printed, argValues) <- evaluateArguments env args
+  (Environment globals scopes printed, argValues) <- evaluateArguments envAfterObject args
   case objectValue of
     (VFunction params body) -> do
       _ <-
