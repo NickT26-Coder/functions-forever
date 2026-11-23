@@ -7,11 +7,11 @@ module Runtime (
 ) where
 
 import Control.Applicative (asum)
+import Control.Monad (unless)
 import qualified Data.Map as Map
 import Parsing (parse)
 import Syntax
 import Tokens (tokenize)
-import Control.Monad (unless)
 
 data Environment = Environment
   { globals :: Map.Map String Value,
@@ -161,16 +161,16 @@ executeIfStatement env ((Token n _), condition, trueBranch, falseBranch) = do
     _ -> Left (env, Error n ("Expected condition to be a boolean value, instead got value of " ++ displayValue result))
 
 executeWhileStatement :: RuntimeFn (Token, Expression, Statement) ExecutionFlow
-executeWhileStatement env (keyword, condition, loopBody) = do 
+executeWhileStatement env (keyword, condition, loopBody) = do
   (envAfterCondition, result) <- evaluate env condition
-  case result of 
+  case result of
     VBoolean True -> do
       (envAfterBody, flow) <- execute envAfterCondition loopBody
       case flow of
         Continue -> executeWhileStatement envAfterBody (keyword, condition, loopBody)
         Returned value -> Right (envAfterBody, Returned value)
     VBoolean False -> Right (envAfterCondition, Continue)
-    _ -> Left (env, Error (tLine keyword) ("expected boolean value, instead got a value of " ++ displayValue result)) 
+    _ -> Left (env, Error (tLine keyword) ("expected boolean value, instead got a value of " ++ displayValue result))
 
 executeReturnStatement :: RuntimeFn (Token, Expression) ExecutionFlow
 executeReturnStatement env (keyword, value) = do
@@ -239,7 +239,7 @@ evaluateLogical env (left, operator, right) = do
     _ -> Left (envAfterLeft, Error (tLine operator) "expected boolean value")
 
 evaluateComparison :: RuntimeFn (Expression, Token, Expression) Value
-evaluateComparison env (left, operator, right) = do 
+evaluateComparison env (left, operator, right) = do
   (envAfterLeft, leftValue) <- evaluate env left
   (envAfterRight, rightValue) <- evaluate envAfterLeft right
   case (operator, leftValue, rightValue) of
@@ -336,7 +336,7 @@ evaluateString env value = case value of
   _ -> Left (env, Error (tLine value) "expected string")
 
 evaluateBoolean :: RuntimeFn Token Value
-evaluateBoolean env value = case value of 
+evaluateBoolean env value = case value of
   Token _ TTrue -> Right (env, VBoolean True)
   Token _ TFalse -> Right (env, VBoolean False)
   _ -> Left (env, Error (tLine value) "expected boolean")
