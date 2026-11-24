@@ -16,33 +16,34 @@ tokenize = loop 1
     Right $ token : tokensAfter
 
 getToken :: Int -> [Char] -> Either Error (Token, Int, [Char])
+getToken n "" = Right (Token n TEOF, n, "")
 getToken n ('\"' : after) = Right (getStringToken n after)
 getToken n ('=' : '=' : after) = Right (Token n TDoubleEqual, n, after)
 getToken n ('=' : after) = Right (Token n TSingleEqual, n, after)
 getToken n (' ' : after) = getToken n after
--- TODO: the rest of the exact-character tokens go here
 getToken n ('&' : after) = Right (Token n TAnd, n, after)
-getToken n ('|': after) = Right (Token n TOr, n, after)
-getToken n ('>': '=' : after) = Right (Token n TGreaterEqual, n, after)
-getToken n ('<': '=' : after) = Right (Token n TLessEqual, n, after)
-getToken n ('!': '=' : after) = Right (Token n TNotEqual, n, after)
-getToken n ('>': after) = Right (Token n TGreater, n, after)
-getToken n ('<': after) = Right (Token n TLess, n, after)
-getToken n ('+': after) = Right (Token n TPlus, n, after)
-getToken n ('-': after) = Right (Token n TMinus, n, after)
-getToken n ('*': after) = Right (Token n TTimes, n, after)
-getToken n ('/': after) = Right (Token n TDivide, n, after)
-getToken n ('!': after) = Right (Token n TNot, n, after)
+getToken n ('|' : after) = Right (Token n TOr, n, after)
+getToken n ('>' : '=' : after) = Right (Token n TGreaterEqual, n, after)
+getToken n ('<' : '=' : after) = Right (Token n TLessEqual, n, after)
+getToken n ('!' : '=' : after) = Right (Token n TNotEqual, n, after)
+getToken n ('>' : after) = Right (Token n TGreater, n, after)
+getToken n ('<' : after) = Right (Token n TLess, n, after)
+getToken n ('+' : after) = Right (Token n TPlus, n, after)
+getToken n ('-' : after) = Right (Token n TMinus, n, after)
+getToken n ('*' : after) = Right (Token n TTimes, n, after)
+getToken n ('/' : after) = Right (Token n TDivide, n, after)
+getToken n ('!' : after) = Right (Token n TNot, n, after)
 getToken n (',' : after) = Right (Token n TComma, n, after)
 getToken n (';' : after) = Right (Token n TSemicolon, n, after)
 getToken n ('(' : after) = Right (Token n TOpenParen, n, after)
 getToken n (')' : after) = Right (Token n TCloseParen, n, after)
 getToken n ('{' : after) = Right (Token n TOpenBrace, n, after)
 getToken n ('}' : after) = Right (Token n TCloseBrace, n, after)
--- Remember that whitespace should simply be skipped, and newlines should increment the line number
-getToken n all@(c : _)
+getToken n ('\n' : after) = getToken (n + 1) after
+getToken n all@(c : after)
   | isNumber c = Right $ getNumberToken n all
   | isLetter c = Right $ getIdentifierToken n all
+  | isSpace c = getToken n after
   | otherwise = Left $ Error n ("Unexpected character: '" ++ c : "'")
 
 getNumberToken :: Int -> [Char] -> (Token, Int, [Char])

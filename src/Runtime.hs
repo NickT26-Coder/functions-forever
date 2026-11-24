@@ -7,7 +7,7 @@ module Runtime (
 ) where
 
 import Control.Applicative (asum)
-import Data.Either (either)
+import Control.Monad (unless)
 import qualified Data.Map as Map
 import Parsing (parse)
 import Syntax
@@ -22,11 +22,37 @@ data Environment = Environment
 environmentGet :: Environment -> String -> Maybe Value
 environmentGet (Environment globals scopes _) name = asum $ map (Map.lookup name) (scopes ++ [globals])
 
-environmentPut :: Environment -> String -> Value -> Environment
-environmentPut (Environment globals [] printed) name value =
+-- Unconditionally define a new variable (or reassign, for globals)
+environmentPutNew :: Environment -> String -> Value -> Environment
+environmentPutNew (Environment globals [] printed) name value =
   Environment (Map.insert name value globals) [] printed
-environmentPut (Environment globals (scope : outerScopes) printed) name value =
+environmentPutNew (Environment globals (scope : outerScopes) printed) name value =
   Environment globals ((Map.insert name value scope) : outerScopes) printed
+
+-- Modify the value of an existing variable
+-- A return value of Nothing means the variable did not exist anywhere
+environmentPutExisting :: Environment -> String -> Value -> Maybe Environment
+environmentPutExisting (Environment globals scopes outputs) name value =
+  case (tryUpdateGlobals, tryUpdateScopes scopes) of
+    -- Note that we prioritize
+    (_, Just updatedScopes) -> Just $ Environment globals updatedScopes outputs
+    (Just updatedGlobals, Nothing) -> Just $ Environment updatedGlobals scopes outputs
+    (Nothing, Nothing) -> Nothing
+ where
+  tryUpdateGlobals :: Maybe (Map.Map String Value)
+  tryUpdateGlobals =
+    if Map.member name globals then
+      Just $ Map.insert name value globals
+    else
+      Nothing
+  tryUpdateScopes :: [Map.Map String Value] -> Maybe [Map.Map String Value]
+  tryUpdateScopes [] = Nothing
+  tryUpdateScopes (curScope : outerScopes) =
+    if Map.member name curScope then
+      -- as soon as we find the variable, update it
+      Just $ (Map.insert name value curScope) : outerScopes
+    else
+      tryUpdateScopes outerScopes
 
 type RuntimeFn a b = Environment -> a -> Either (Environment, Error) (Environment, b)
 
@@ -45,6 +71,7 @@ instance Eq Value where
   VFunction a1 a2 == VFunction b1 b2 = (a1 == b1 && a2 == b2)
   VBuiltinFunction _ == VBuiltinFunction _ = False
   VNothing == VNothing = True
+  _ == _ = False -- comparing any other values
 
 displayValue :: Value -> String
 displayValue (VNumber n) = show n
@@ -74,12 +101,15 @@ interpret env str =
   case programResult of
     (Right (envAfter@(Environment _ _ outputs), result)) -> do
       mapM_ putStr outputs
-      putStrLn $ displayValue result
+      -- Only print the result if there is a value
+      unless (result == VNothing) $
+        putStrLn $ displayValue result
       return envAfter
-    (Left (envAfter@(Environment _ _ outputs), err)) -> do
+    (Left (Environment g s outputs, err)) -> do
       mapM_ putStr outputs
       putStrLn $ displayError err
-      return envAfter
+      -- reset outputs because we just printed them
+      return $ Environment g s []
  where
   programResult :: Either (Environment, Error) (Environment, Value)
   programResult = case (tokenize str >>= parse) of
@@ -88,7 +118,7 @@ interpret env str =
 
 runProgram :: RuntimeFn [Statement] Value
 -- no last expression, print nothing
-runProgram env [] = Right (env, VString "")
+runProgram env [] = Right (env, VNothing)
 -- if the last line is an expression, we return that value
 runProgram env [SExpressionStatement expr] = evaluate env expr
 runProgram env (stmt : after) = do
@@ -111,12 +141,12 @@ execute env (SExpressionStatement expression) = executeExpressionStatement env e
 executeVariableDeclaration :: RuntimeFn (Token, Expression) ExecutionFlow
 executeVariableDeclaration env (Token _ (TIdentifier name), value) = do
   (envAfterValue, evaluated) <- evaluate env value
-  Right (environmentPut envAfterValue name evaluated, Continue)
+  Right (environmentPutNew envAfterValue name evaluated, Continue)
 
 executeFunctionDeclaration :: RuntimeFn (Token, [Token], [Statement]) ExecutionFlow
 executeFunctionDeclaration env ((Token _ (TIdentifier name), paramTokens, body)) = do
   paramStrings <- mapM getStringOfIdent paramTokens
-  Right (environmentPut env name (VFunction paramStrings body), Continue)
+  Right (environmentPutNew env name (VFunction paramStrings body), Continue)
  where
   getStringOfIdent :: Token -> Either (Environment, Error) String
   getStringOfIdent (Token _ (TIdentifier str)) = Right str
@@ -132,16 +162,16 @@ executeIfStatement env ((Token n _), condition, trueBranch, falseBranch) = do
     _ -> Left (env, Error n ("Expected condition to be a boolean value, instead got value of " ++ displayValue result))
 
 executeWhileStatement :: RuntimeFn (Token, Expression, Statement) ExecutionFlow
-executeWhileStatement env (keyword, condition, loopBody) = do 
+executeWhileStatement env (keyword, condition, loopBody) = do
   (envAfterCondition, result) <- evaluate env condition
-  case result of 
+  case result of
     VBoolean True -> do
       (envAfterBody, flow) <- execute envAfterCondition loopBody
       case flow of
         Continue -> executeWhileStatement envAfterBody (keyword, condition, loopBody)
         Returned value -> Right (envAfterBody, Returned value)
     VBoolean False -> Right (envAfterCondition, Continue)
-    _ -> Left (env, Error (tLine keyword) ("expected boolean value, instead got a value of " ++ displayValue result)) 
+    _ -> Left (env, Error (tLine keyword) ("expected boolean value, instead got a value of " ++ displayValue result))
 
 executeReturnStatement :: RuntimeFn (Token, Expression) ExecutionFlow
 executeReturnStatement env (keyword, value) = do
@@ -184,10 +214,12 @@ evaluate env (EVariable value) = evaluateVariable env value
 
 evaluateAssignment :: RuntimeFn (Token, Expression) Value
 evaluateAssignment env (Token n (TIdentifier target), value) = do
-  _ <- case environmentGet env target of
-    Nothing -> Left (env, Error n ("Undefined variable '" ++ target ++ "'"))
   (envAfterValue, evaluated) <- evaluate env value
-  Right (environmentPut envAfterValue target evaluated, evaluated)
+  let updatedEnv = environmentPutExisting envAfterValue target evaluated
+  envAfterAssignment <- case updatedEnv of
+    Just e -> Right $ e
+    Nothing -> Left (env, Error n ("Undefined variable '" ++ target ++ "'"))
+  Right (envAfterAssignment, evaluated)
 
 evaluateLogical :: RuntimeFn (Expression, Token, Expression) Value
 evaluateLogical env (left, operator, right) = do
@@ -208,7 +240,7 @@ evaluateLogical env (left, operator, right) = do
     _ -> Left (envAfterLeft, Error (tLine operator) "expected boolean value")
 
 evaluateComparison :: RuntimeFn (Expression, Token, Expression) Value
-evaluateComparison env (left, operator, right) = do 
+evaluateComparison env (left, operator, right) = do
   (envAfterLeft, leftValue) <- evaluate env left
   (envAfterRight, rightValue) <- evaluate envAfterLeft right
   case (operator, leftValue, rightValue) of
@@ -261,7 +293,7 @@ evaluateUnary env (Token n operator, object) = do
 evaluateCall :: RuntimeFn (Expression, Token, [Expression]) Value
 evaluateCall env (object, (Token n _), args) = do
   (envAfterObject, objectValue) <- evaluate env object
-  (Environment globals scopes printed, argValues) <- evaluateArguments env args
+  (Environment globals scopes printed, argValues) <- evaluateArguments envAfterObject args
   case objectValue of
     (VFunction params body) -> do
       _ <-
@@ -305,7 +337,7 @@ evaluateString env value = case value of
   _ -> Left (env, Error (tLine value) "expected string")
 
 evaluateBoolean :: RuntimeFn Token Value
-evaluateBoolean env value = case value of 
+evaluateBoolean env value = case value of
   Token _ TTrue -> Right (env, VBoolean True)
   Token _ TFalse -> Right (env, VBoolean False)
   _ -> Left (env, Error (tLine value) "expected boolean")
