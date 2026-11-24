@@ -4,6 +4,7 @@ module Runtime (
   newEnvironment,
   interpret,
   displayValue,
+  evalProgram,
 ) where
 
 import Control.Applicative (asum)
@@ -85,6 +86,11 @@ interpret env str =
   programResult = case (tokenize str >>= parse) of
     Right stmts -> runProgram env stmts
     Left e -> Left (env, e) -- obviously no change in environment if we never make it to runtime
+
+evalProgram :: Environment -> [Char] -> Either (Environment, Error) (Environment, Value)
+evalProgram env str = case (tokenize str >>= parse) of
+  Right stmts -> runProgram env stmts
+  Left e -> Left (env, e)
 
 runProgram :: RuntimeFn [Statement] Value
 -- no last expression, print nothing
