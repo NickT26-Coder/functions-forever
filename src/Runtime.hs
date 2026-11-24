@@ -4,6 +4,7 @@ module Runtime (
   newEnvironment,
   interpret,
   displayValue,
+  evalProgram,
 ) where
 
 import Control.Applicative (asum)
@@ -102,8 +103,9 @@ interpret env str =
     (Right (envAfter@(Environment _ _ outputs), result)) -> do
       mapM_ putStr outputs
       -- Only print the result if there is a value
-      unless (result == VNothing) $
-        putStrLn $ displayValue result
+      unless (result == VNothing)
+        $ putStrLn
+        $ displayValue result
       return envAfter
     (Left (Environment g s outputs, err)) -> do
       mapM_ putStr outputs
@@ -116,6 +118,11 @@ interpret env str =
     Right stmts -> runProgram env stmts
     Left e -> Left (env, e) -- obviously no change in environment if we never make it to runtime
 
+evalProgram :: Environment -> [Char] -> Either (Environment, Error) (Environment, Value)
+evalProgram env str = case (tokenize str >>= parse) of
+  Right stmts -> runProgram env stmts
+  Left e -> Left (env, e)
+
 runProgram :: RuntimeFn [Statement] Value
 -- no last expression, print nothing
 runProgram env [] = Right (env, VNothing)
@@ -125,7 +132,7 @@ runProgram env (stmt : after) = do
   (envAfter, flow) <- execute env stmt
   case flow of
     Returned value -> Left (env, Error (stmtLineNumber stmt) "Cannot return from outside a function.")
-    Continue -> runFunction envAfter after
+    Continue -> runProgram envAfter after
 
 data ExecutionFlow = Continue | Returned Value
 
