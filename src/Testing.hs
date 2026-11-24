@@ -15,5 +15,7 @@ testFails code =
 tests :: [Bool]
 tests =
   [ testPass "2 + 3 * 4" (VNumber 14),
-    testFails "10 / 0"
+    testFails "10 / 0",
+    testPass "let x = 2;" (VNothing),
+    testPass "let x = 2; x = 3;" (VNumber 3)
   ]

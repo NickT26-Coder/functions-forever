@@ -103,8 +103,9 @@ interpret env str =
     (Right (envAfter@(Environment _ _ outputs), result)) -> do
       mapM_ putStr outputs
       -- Only print the result if there is a value
-      unless (result == VNothing) $
-        putStrLn $ displayValue result
+      unless (result == VNothing)
+        $ putStrLn
+        $ displayValue result
       return envAfter
     (Left (Environment g s outputs, err)) -> do
       mapM_ putStr outputs
@@ -131,7 +132,7 @@ runProgram env (stmt : after) = do
   (envAfter, flow) <- execute env stmt
   case flow of
     Returned value -> Left (env, Error (stmtLineNumber stmt) "Cannot return from outside a function.")
-    Continue -> runFunction envAfter after
+    Continue -> runProgram envAfter after
 
 data ExecutionFlow = Continue | Returned Value
 
